@@ -4,6 +4,7 @@ module.exports = function(grunt) {
 
     return {
         chromeApp: ['build/chrome-app'],
-        cloudReader: ['build/cloud-reader']
+        cloudReader: ['build/cloud-reader'],
+        firefoxAddon:  ['build/firefox-addon']
     };
 };

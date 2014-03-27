@@ -1,0 +1,9 @@
+{
+  "name": "readium",
+  "title": "Readium, EPUB reader",
+  "id": "jid1-o4gyqLFAgd1yHQ",
+  "description": "Port of the Readium Chrome extension to a Firefox add-on (JetPack SDK)",
+  "author": "Readium Foundation",
+  "license": "MIT",
+  "version": "2.13.4"
+}

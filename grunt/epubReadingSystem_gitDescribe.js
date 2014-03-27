@@ -56,7 +56,6 @@ module.exports = function(grunt) {
 
         grunt.config.set(["git-describe", "options", "cwd"], fullPath);
         grunt.task.run('git-describe');
-
     });
 
     return {};

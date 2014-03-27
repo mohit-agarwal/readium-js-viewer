@@ -3,6 +3,46 @@
 module.exports = function(grunt) {
 
     return {
+        firefoxAddon: {
+            options: {
+                mainConfigFile: './require_config.js',
+                include: ['../firefox-addon/data/extended-config', 'ReadiumViewer'],
+                name: 'thirdparty/almond',
+                baseUrl: './lib/',
+                optimize: 'none',
+                out: 'build/firefox-addon/data/scripts/readium-all.js',
+                paths: {
+                    'idbFilesystem': '../firefox-addon/data/storage/idb.filesystem',
+                    'storage/StorageManager': '../firefox-addon/data/storage/FileSystemStorage'
+                },
+                shim: {
+                    idbFilesystem: {
+                        deps: ['workers/Messages'],
+                        exports: 'idbFilesystem'
+                    }
+                }
+            }
+        },
+        firefoxAddonWorker: {
+            options: {
+                mainConfigFile: './require_config.js',
+                include: ['workers/EpubLibraryWriter'],
+                name: 'thirdparty/almond',
+                baseUrl: './lib/',
+                optimize: 'none',
+                out: 'build/firefox-addon/data/scripts/readium-worker.js',
+                paths: {
+                    'idbFilesystem': '../firefox-addon/data/storage/idb.filesystem',
+                    'storage/StorageManager': '../firefox-addon/data/storage/FileSystemStorage'
+                },
+                shim: {
+                    idbFilesystem: {
+                        deps: ['workers/Messages'],
+                        exports: 'idbFilesystem'
+                    }
+                }
+            }
+        },
         chromeApp: {
             options: {
                 mainConfigFile: './require_config.js',

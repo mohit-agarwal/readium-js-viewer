@@ -3,6 +3,47 @@
 module.exports = function(grunt) {
 
     return {
+        firefoxAddon: {
+            files: [{
+                expand: true,
+                cwd: 'firefox-addon',
+                src: ['package.json'],
+                dest: 'build/firefox-addon'
+            }, {
+                expand: true,
+                cwd: 'firefox-addon/lib',
+                src: ['main.js'],
+                dest: 'build/firefox-addon/lib'
+            }, {
+                expand: true,
+                cwd: 'firefox-addon/data',
+                src: ['index.html', 'extended-config.js'],
+                dest: 'build/firefox-addon/data'
+            }, {
+                expand: true,
+                src: 'images/**',
+                dest: 'build/firefox-addon/data'
+            }, {
+                expand: true,
+                cwd: 'i18n',
+                src: '_locales/**',
+                dest: 'build/firefox-addon/data'
+            }, {
+                expand: true,
+                cwd: 'lib/thirdparty/',
+                src: ['inflate.js', 'deflate.js'],
+                dest: 'build/firefox-addon/data'
+            }, {
+                expand: true,
+                cwd: 'css',
+                src: 'annotations.css',
+                dest: 'build/firefox-addon/data/css'
+            }, {
+                expand: true,
+                src: 'fonts/**',
+                dest: 'build/firefox-addon/data'
+            }]
+        },
         chromeApp: {
             files: [{
                 expand: true,
