@@ -17,7 +17,6 @@ module.exports = function(grunt) {
                 },
                 shim: {
                     idbFilesystem: {
-                        deps: ['workers/Messages'],
                         exports: 'idbFilesystem'
                     }
                 }
@@ -37,7 +36,6 @@ module.exports = function(grunt) {
                 },
                 shim: {
                     idbFilesystem: {
-                        deps: ['workers/Messages'],
                         exports: 'idbFilesystem'
                     }
                 }

@@ -1,5 +1,27 @@
 define(['workers/Messages', 'idbFilesystem'], function(Messages, idbFilesystem){
-	
+
+    var context = undefined;
+    if (typeof window !== "undefined")
+    {
+        context = window;
+    }
+    else
+    {
+        context = self;
+    }
+    
+    var log = function(msg)
+    {
+        if (typeof window !== "undefined")
+        {
+            console.debug(msg);
+        }
+        else
+        {
+            context.postMessage({msg: 400, log: msg});
+        }
+    };
+    	
 
 	var FileUtils = (function(){
 		
@@ -120,13 +142,14 @@ define(['workers/Messages', 'idbFilesystem'], function(Messages, idbFilesystem){
 		};
 	}
 	)();
+    
 	var rootDir;
 
 	var wrapErrorHandler = function(op, path, handler){
 		return function(err){
 			var data = {path: path, error: err.name, op: op};
 			handler(Messages.ERROR_STORAGE, data);
-			console.error(data);
+			log(data);
 		}
 	};
 	var copyDir = function(from, to, success, error){
@@ -153,7 +176,7 @@ define(['workers/Messages', 'idbFilesystem'], function(Messages, idbFilesystem){
 		}, error);
 	}
 
-	self.requestFileSystem  = self.requestFileSystem || self.webkitRequestFileSystem;
+	context.requestFileSystem  = context.requestFileSystem || context.webkitRequestFileSystem;
 	
 	var StaticStorageManager = {
 		
@@ -199,7 +222,7 @@ define(['workers/Messages', 'idbFilesystem'], function(Messages, idbFilesystem){
 				success();
 				return;
 			}
-			requestFileSystem(self.PERSISTENT, 5*1024*1024*1024, function(fs){
+			requestFileSystem(context.PERSISTENT, 5*1024*1024*1024, function(fs){
 				rootDir = fs.root;
 				success();
 			}, wrapErrorHandler('init', '/', error));
