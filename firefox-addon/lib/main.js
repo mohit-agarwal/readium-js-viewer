@@ -36,10 +36,10 @@ resource.set('readium', readiumURL);
 var _workers = [];
 
 function detachWorker(worker) {
-console.log("########### detach?");
+    console.log("########### detach?");
     var index = _workers.indexOf(worker);
     if (index != -1) {
-console.log("########### detachWorker");
+        console.log("########### detachWorker");
         _workers.splice(index, 1);
     }
 }
@@ -51,7 +51,34 @@ function getWorker(tab) {
     return undefined;
 }
 
+function getMimeType(uri, isText)
+{
+    var mime = isText ? "text/plain" : "application/octet-stream";
 
+    if (uri.indexOf(".js") > 0) mime = "application/javascript";
+    if (uri.indexOf(".json") > 0) mime = "application/json";
+    
+    if (uri.indexOf(".xml") > 0) mime = "application/xml";
+    
+    if (uri.indexOf(".css") > 0) mime = "text/css";
+    
+    if (uri.indexOf(".opf") > 0) mime = "application/oebps-package+xml";
+    if (uri.indexOf(".ncx") > 0) mime = "application/x-dtbncx+xml";
+
+    if (uri.indexOf(".html") > 0) mime = "application/xhtml+xml"; // "text/html"
+    if (uri.indexOf(".xhtml") > 0) mime = "application/xhtml+xml";
+    
+    if (uri.indexOf(".smil") > 0) mime = "application/smil+xml";
+    
+    if (uri.indexOf(".txt") > 0) mime = "text/plain";
+    
+    if (uri.indexOf(".jpg") > 0) mime = "image/jpeg";
+    if (uri.indexOf(".jpeg") > 0) mime = "image/jpeg";
+    if (uri.indexOf(".gif") > 0) mime = "image/gif";
+    if (uri.indexOf(".png") > 0) mime = "image/png";
+
+    return mime + (isText ? "; charset=utf-8" : "");
+}
 
 var _responses = {};
 var _response = -1;
@@ -71,16 +98,19 @@ exports.handler = protocol.protocol(URI_SCHEME, {
         var requesturi = request.uri;
         if (requesturi.replace(/\//g, '') === "readium:") {
             requesturi = str;
-
+            console.log("URI 1");
             response.uri = requesturi;
+
+            //injectWorker();
             return;
         } else if (requesturi.indexOf(token) === 0) {
             requesturi = requesturi.replace(token, str);
-
+            console.log("URI 2");
             response.uri = requesturi;
+
+            //injectWorker();
             return;
         }
-
 
         var index = requesturi.indexOf(str);
         if (index === 0) {
@@ -93,49 +123,63 @@ exports.handler = protocol.protocol(URI_SCHEME, {
             if (path === "epub_library.json") {
                 console.log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FETCH epub_library.json");
 
-                // response.contentType = "application/json; charset=utf-8";
-                // response.end('{"title" : "EPUB3 title", "author" : "Author", "packagePath" : "EPUB/package.opf", "rootUrl" : "readium://readium/1396025669514139", "rootDir": "1396025669514139", "id": "dc:identifer" }');
+                injectWorker();
+                timers.setTimeout(function() {
+                    var worker = getWorker(tabs.activeTab);
+                    if (!worker) {
+                        console.log("NO WORKER?!?");
+                        response.contentType = "text/plain; charset=utf-8";
+                        response.end("Please use the Readium icon (Firefox's bottom-right corner)");
+                        return;
+                    }
+                    _response++;
+                    var r = response;
+                    _responses["_" + _response] = r;
 
-                var worker = getWorker(tabs.activeTab);
-                if (!worker) {
-                    response.contentType = "text/plain; charset=utf-8";
-                    response.end("WROKED?");
-                    return;
-                }
-
-_response++;
-var r = response;
-_responses["_"+_response] = r;
-
-                worker.port.emit("getEpubFileText", {path: path, response: _response});
+                    worker.port.emit("getEpubFileText", {
+                        path: path,
+                        response: _response
+                    });
+                }, 100);
 
                 return;
             } else if (/^[0-9]/.test(path.charAt(0))) { // EPUB package data!
                 console.log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EPUB: " + path);
 
-                var worker = getWorker(tabs.activeTab);
-                if (!worker) {
-console.log("WROKED? ??? !");
-                    response.contentType = "text/plain; charset=utf-8";
-                    response.end("WROKED? ??? !");
-                    return;
-                }
+                var isTXT = path.indexOf(".xml") >= 0 || path.indexOf(".html") >= 0 || path.indexOf(".xhtml") >= 0 || path.indexOf(".css") >= 0 || path.indexOf(".txt") >= 0 || path.indexOf(".opf") >= 0 || path.indexOf(".ncx") >= 0 || path.indexOf(".json") >= 0 || path.indexOf(".js") >= 0 || path.indexOf(".smil") >= 0;
+                console.log("isTXT: " + isTXT);
 
-                var isTXT = path.indexOf(".xml") >= 0 || path.indexOf(".html") >= 0 || path.indexOf(".xhtml") >= 0 || path.indexOf(".css") >= 0 || path.indexOf(".txt") >= 0 || path.indexOf(".opf") >= 0 || path.indexOf(".ncx") >= 0 || path.indexOf(".json") >= 0 || path.indexOf(".js") >= 0;
-console.log("isTXT: "+isTXT);
+                injectWorker();
+                timers.setTimeout(function() {
+                    var worker = getWorker(tabs.activeTab);
+                    if (!worker) {
+                        console.log("NO WORKER?!?");
+                        response.contentType = "text/plain; charset=utf-8";
+                        response.end("Please use the Readium icon (Firefox's bottom-right corner)");
+                        return;
+                    }
+                    _response++;
+                    var r = response;
+                    _responses["_" + _response] = r;
 
-_response++;
-var r = response;
-_responses["_"+_response] = r;
+                    if (isTXT) {
+                        worker.port.emit("getEpubFileText", {
+                            path: path,
+                            response: _response
+                        });
 
-                if (isTXT) {
-                    worker.port.emit("getEpubFileText", {path: path, response: _response});
-                    return;
-                } else {
-                    worker.port.emit("getEpubFileBinary",  {path: path, response: _response});
-                    return;
-                }
+                    } else {
+                        worker.port.emit("getEpubFileBinary", {
+                            path: path,
+                            response: _response
+                        });
+
+                    }
+                }, 100);
+
+                return;
             }
+
             var query = path.indexOf('?');
             if (query >= 0) {
                 var l = query;
@@ -144,7 +188,7 @@ _responses["_"+_response] = r;
             } else {
                 query = "";
             }
-
+            console.log("query: " + query);
             var hash = query.indexOf('#');
             if (hash >= 0) {
                 var ll = hash;
@@ -153,13 +197,14 @@ _responses["_"+_response] = r;
             } else {
                 hash = "";
             }
-
+            console.log("hash: " + hash);
             var url = self.data.url("index.html");
             if (path.length > 0) {
                 url = self.data.url(path);
             }
             url = url + query + hash;
 
+            console.log("url: " + url);
             console.log("***************** URL: " + url);
             response.uri = url;
 
@@ -209,7 +254,7 @@ var inject = {
     + 'console.log("^^^^^^^ " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
     //  TODO: document.defaultView.postMessage('blabla', '*');
     //window.addEventListener("message", function(event) { ... }, false);
-    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "Text", function(src){console.log("_SUCCESS TXT_"); self.port.emit("gotEpubFileText", { src: src, response: response }); }, function(data){console.log("_ERROR TXT_"); console.log(data); self.port.emit("gotEpubFileText", { src: "{}", response: response }); });'
+    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "Text", function(src){console.log("_SUCCESS TXT_"); self.port.emit("gotEpubFileText", { src: src, response: response }); }, function(data){console.log("_ERROR TXT_"); console.log(data); self.port.emit("gotEpubFileText", { src: undefined, response: response }); });'
     //
     + '});'
     //
@@ -217,7 +262,7 @@ var inject = {
     //
     + 'console.log("^^^^^^^ " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
     //
-    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "ArrayBuffer", function(src){console.log("_SUCCESS_"); self.port.emit("gotEpubFileBinary", { src: src, response: response }); }, function(data){console.log("_ERROR_"); console.log(data); self.port.emit("gotEpubFileBinary", { src: "{}", response: response }); });'
+    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "ArrayBuffer", function(src){console.log("_SUCCESS_"); self.port.emit("gotEpubFileBinary", { src: src, response: response }); }, function(data){console.log("_ERROR_"); console.log(data); self.port.emit("gotEpubFileBinary", { src: undefined, response: response }); });'
     //
     + '});',
 
@@ -260,19 +305,25 @@ var inject = {
         worker.port.on("gotEpubFileText", function(raw) {
 
             var src = raw.src;
-            var response = _responses["_"+raw.response];
-            delete _responses["_"+raw.response];
-            
-            
-            var bytes = encodeURI(src).split(/%..|./).length - 1;
+            var response = _responses["_" + raw.response];
+            delete _responses["_" + raw.response];
+
+            var bytes = src ? (encodeURI(src).split(/%..|./).length - 1) : 0;
             // var m = encodeURIComponent(src).match(/%[89ABab]/g);
             // bytes = src.length + (m ? m.length : 0);
 
-            response.contentType = "text/plain; charset=utf-8";
+            var mime = getMimeType(response.uri, true);
+            response.contentType = mime;
 
             response.contentLength = bytes;
 
             response.end(src);
+            
+            if (response.uri.indexOf("epub_library.json") >= 0)
+            {
+                console.log(":::::::::::::: epub_library");
+                console.log(src);
+            }
 
             console.log('}}}}}}}}}}}}}}} RESPONSE TEXT: ', JSON.stringify(response, '', '  '));
         });
@@ -280,10 +331,13 @@ var inject = {
         worker.port.on("gotEpubFileBinary", function(raw) {
 
             var src = raw.src;
-            var response = _responses["_"+raw.response];
-            delete _responses["_"+raw.response];
-        
-            var bytes = src.byteLength;
+            var response = _responses["_" + raw.response];
+            delete _responses["_" + raw.response];
+
+            var bytes = src ? src.byteLength : 0;
+
+            var mime = getMimeType(response.uri);
+            response.contentType = mime;
 
             response.contentLength = bytes;
 
@@ -294,6 +348,22 @@ var inject = {
     }
 };
 
+var injectWorker = function() {
+    var worker = getWorker(tabs.activeTab);
+    if (!worker) {
+        console.log("~~~~~~~~~~~~~~~~~~~ INJECT WORKER");
+
+        var worker = tabs.activeTab.attach(inject);
+        inject.onAttach(worker);
+    }
+    // timers.setTimeout(function() {
+    //         console.log("TAB onAtttach");
+    // 
+    //         var worker = getWorker(tabs.activeTab);
+    //         inject.onAttach(worker);
+    // }, 100);
+}
+
 // pageMod.PageMod(inject);
 var widget = widgets.Widget({
     id: "readium",
@@ -301,21 +371,14 @@ var widget = widgets.Widget({
     contentURL: self.data.url("images/readium_favicon.png"),
     onClick: function() {
         //var url = self.data.url("index.html");
-        //var url = "resource://readium";
-        var url = URI_SCHEME + "://" + rootDir + "index.html";
+        //var url = "resource://" + rootDir;
+        //var url = URI_SCHEME + "://" + rootDir + "index.html";
+        var url = URI_SCHEME + "://" + rootDir;
 
         tabs.open(url);
-
-        timers.setTimeout(function() {
-            var worker = tabs.activeTab.attach(inject);
-            inject.onAttach(worker);
-
-            // timers.setTimeout(function() {
-            //         console.log("TAB onAtttach");
-            // 
-            //         var worker = getWorker(tabs.activeTab);
-            //         inject.onAttach(worker);
-            // }, 100);
-        }, 100);
+        // 
+        // timers.setTimeout(function() {
+        //     injectWorker();
+        // }, 100);
     }
 });
