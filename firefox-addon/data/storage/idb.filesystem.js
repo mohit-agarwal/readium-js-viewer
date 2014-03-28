@@ -792,8 +792,12 @@ DirectoryEntry.prototype.getDirectory = function(path, options, successCallback,
 DirectoryEntry.prototype.getFile = function(path, options, successCallback,
                                             opt_errorCallback) {
 
+console.debug("DirectoryEntry.prototype.getFile 1: " + path);
+
   // Create an absolute path if we were handed a relative one.
   path = resolveToFullPath_(this.fullPath, path);
+
+console.debug("DirectoryEntry.prototype.getFile 2: " + path);
 
   idb_.get(path, function(fileEntry) {
     if (!options) {
@@ -876,8 +880,11 @@ DirectoryEntry.prototype.removeRecursively = function(successCallback,
  */
 function DOMFileSystem(type, size) {
   storageType_ = type == exports.TEMPORARY ? 'Temporary' : 'Persistent';
-  this.name = (location.protocol + location.host).replace(/:/g, '_') +
-              ':' + storageType_;
+  
+  //this.name = (location.protocol + location.host).replace(/:/g, '_') + ':' + storageType_;
+  this.name = ("readium:readium").replace(/:/g, '_') + ':' + storageType_;
+  
+console.debug("DOMFileSystem: " + this.name);
   this.root = new DirectoryEntry();
   this.root.fullPath = DIR_SEPARATOR;
   this.root.filesystem = this;
@@ -909,7 +916,7 @@ function resolveLocalFileSystemURL(url, callback, opt_errorCallback) {
 
 idb_.open = function(dbName, successCallback, opt_errorCallback) {
   var self = this;
-
+console.debug("idb_.open: " + dbName);
   // TODO: FF 12.0a1 isn't liking a db name with : in it.
   var request = indexedDB.open(dbName.replace(':', '_')/*, 1 /*version*/);
 

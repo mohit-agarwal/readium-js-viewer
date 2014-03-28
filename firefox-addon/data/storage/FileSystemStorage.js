@@ -30,6 +30,7 @@ define(['workers/Messages', 'idbFilesystem'], function(Messages, idbFilesystem){
 		}
 		
 		var makeFile = function(root, filename, contents, callback, error){
+console.debug("++++++ makeFile: " + filename);
 			root.getFile(filename, {create:true}, function(fileEntry){
 				fileEntry.createWriter(function(writer){
 					writer.onwriteend = function(){
@@ -55,6 +56,7 @@ define(['workers/Messages', 'idbFilesystem'], function(Messages, idbFilesystem){
 		}
 		
 		var makeDir = function(root, dirname, callback, error){
+console.debug("++++++ makeDir: " + dirname);
 			root.getDirectory(dirname, {create:true},callback, error);
 		}
 		
@@ -180,12 +182,18 @@ define(['workers/Messages', 'idbFilesystem'], function(Messages, idbFilesystem){
 	
 	var StaticStorageManager = {
 		
+        readFile : function(path, type, success, error){
+console.debug("++++++ readFile: " + path);
+        	FileUtils.readFile(rootDir, path, type, success, error)
+        },
 		
 		saveFile : function(path, blob, success, error){
+console.debug("++++++ saveFile: " + path);
 			FileUtils.mkfile(rootDir, path, blob, success, wrapErrorHandler('save', path, error));
 		},
 		
 		deleteFile : function(path, success, error){
+console.debug("++++++ deleteFile: " + path);
 			var errorHandler = wrapErrorHandler('delete', path, error);
 			if (path == '/'){
 				FileUtils.ls(rootDir, function(entries){
@@ -215,6 +223,8 @@ define(['workers/Messages', 'idbFilesystem'], function(Messages, idbFilesystem){
 			if (path.charAt(0) == '/') 
 				path = path.substring(1);
 
+console.debug("++++++ getPathUrl: " + path);
+
 			return rootDir.toURL() + path
 		},
 		initStorage : function(success, error){
@@ -230,8 +240,13 @@ define(['workers/Messages', 'idbFilesystem'], function(Messages, idbFilesystem){
 	}
 
 	//$(window).bind('libraryUIReady', function(){
-	
-		
+
+console.log("StaticStorageManager");
+        if (typeof window !== "undefined")
+        {
+console.log("window.ReadiumStaticStorageManager");
+            window.ReadiumStaticStorageManager = StaticStorageManager;
+        }
 
 	return StaticStorageManager;
 });
