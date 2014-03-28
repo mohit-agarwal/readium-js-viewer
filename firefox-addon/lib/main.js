@@ -36,8 +36,10 @@ resource.set('readium', readiumURL);
 var _workers = [];
 
 function detachWorker(worker) {
+console.log("########### detach?");
     var index = _workers.indexOf(worker);
     if (index != -1) {
+console.log("########### detachWorker");
         _workers.splice(index, 1);
     }
 }
@@ -48,6 +50,11 @@ function getWorker(tab) {
     }
     return undefined;
 }
+
+
+
+var _responses = {};
+var _response = -1;
 
 exports.handler = protocol.protocol(URI_SCHEME, {
     isAbsolute: function(uri) {
@@ -96,33 +103,11 @@ exports.handler = protocol.protocol(URI_SCHEME, {
                     return;
                 }
 
-                worker.port.once("gotEpubFileText", function(src) {
+_response++;
+var r = response;
+_responses["_"+_response] = r;
 
-                    var bytes = encodeURI(src).split(/%..|./).length - 1;
-                    // var m = encodeURIComponent(src).match(/%[89ABab]/g);
-                    // bytes = src.length + (m ? m.length : 0);
-
-                    response.contentType = "text/plain; charset=utf-8";
-
-                    response.contentLength = bytes;
-
-                    response.end(src);
-                    console.log(src);
-                    console.log('}}}}}}}}}}}}}}} RESPONSE: ', JSON.stringify(response, '', '  '));
-                });
-                worker.port.emit("getEpubFileText", path);
-                // 
-                // worker.port.once("gotEpubFileBinary", function(src) {
-                // 
-                //     var bytes = src.byteLength;
-                // 
-                //     response.contentLength = bytes;
-                // 
-                //     response.end(src);
-                // 
-                //     console.log('}}}}}}}}}}}}}}} RESPONSE: ', JSON.stringify(response, '', '  '));
-                // });
-                // worker.port.emit("getEpubFileBinary", path);
+                worker.port.emit("getEpubFileText", {path: path, response: _response});
 
                 return;
             } else if (/^[0-9]/.test(path.charAt(0))) { // EPUB package data!
@@ -130,43 +115,24 @@ exports.handler = protocol.protocol(URI_SCHEME, {
 
                 var worker = getWorker(tabs.activeTab);
                 if (!worker) {
+console.log("WROKED? ??? !");
                     response.contentType = "text/plain; charset=utf-8";
                     response.end("WROKED? ??? !");
                     return;
                 }
 
-                var isTXT = path.indexOf(".xml") >= 0 || path.indexOf(".html") >= 0 || path.indexOf(".xhtml") >= 0 || path.indexOf(".css") >= 0 || path.indexOf(".txt") >= 0;
+                var isTXT = path.indexOf(".xml") >= 0 || path.indexOf(".html") >= 0 || path.indexOf(".xhtml") >= 0 || path.indexOf(".css") >= 0 || path.indexOf(".txt") >= 0 || path.indexOf(".opf") >= 0 || path.indexOf(".ncx") >= 0 || path.indexOf(".json") >= 0 || path.indexOf(".js") >= 0;
 console.log("isTXT: "+isTXT);
+
+_response++;
+var r = response;
+_responses["_"+_response] = r;
+
                 if (isTXT) {
-                    worker.port.once("gotEpubFileText", function(src) {
-
-                        var bytes = encodeURI(src).split(/%..|./).length - 1;
-                        // var m = encodeURIComponent(src).match(/%[89ABab]/g);
-                        // bytes = src.length + (m ? m.length : 0);
-
-                        response.contentType = "text/plain; charset=utf-8";
-
-                        response.contentLength = bytes;
-
-                        response.end(src);
-                        console.log(src);
-                        console.log('}}}}}}}}}}}}}}} RESPONSE: ', JSON.stringify(response, '', '  '));
-                    });
-                    worker.port.emit("getEpubFileText", path);
+                    worker.port.emit("getEpubFileText", {path: path, response: _response});
+                    return;
                 } else {
-                    worker.port.once("gotEpubFileBinary", function(src) {
-
-                        var bytes = src.byteLength;
-
-                        response.contentLength = bytes;
-
-                        response.end(src);
-                        console.log(src);
-                        console.log('}}}}}}}}}}}}}}} RESPONSE: ', JSON.stringify(response, '', '  '));
-                    });
-                    worker.port.emit("getEpubFileBinary", path);
-
-
+                    worker.port.emit("getEpubFileBinary",  {path: path, response: _response});
                     return;
                 }
             }
@@ -238,10 +204,22 @@ var inject = {
 
     // TODO: real script, real fetching of EPUB package data
     //contentScriptFile: data.url("element-getter.js"),
-    contentScript: 'self.port.on("getEpubFileText", function(path) {' + 'console.log("^^^^^^^ " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
+    contentScript: 'self.port.on("getEpubFileText", function(raw) { var path = raw.path; var response = raw.response; '
+    //
+    + 'console.log("^^^^^^^ " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
     //  TODO: document.defaultView.postMessage('blabla', '*');
     //window.addEventListener("message", function(event) { ... }, false);
-    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "Text", function(src){console.log("_SUCCESS_"); console.log(src); self.port.emit("gotEpubFileText", src); }, function(data){console.log("_ERROR_"); console.log(data); self.port.emit("gotEpubFileText", "404"); });' + '});' + 'self.port.on("getEpubFileBinary", function(path) {' + 'console.log("^^^^^^^ " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));' + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "ArrayBuffer", function(src){console.log("_SUCCESS_"); console.log(src); self.port.emit("gotEpubFileBinary", src); }, function(data){console.log("_ERROR_"); console.log(data); self.port.emit("gotEpubFileBinary", "404"); });' + '});',
+    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "Text", function(src){console.log("_SUCCESS TXT_"); self.port.emit("gotEpubFileText", { src: src, response: response }); }, function(data){console.log("_ERROR TXT_"); console.log(data); self.port.emit("gotEpubFileText", { src: "{}", response: response }); });'
+    //
+    + '});'
+    //
+    + 'self.port.on("getEpubFileBinary", function(raw) { var path = raw.path; var response = raw.response; '
+    //
+    + 'console.log("^^^^^^^ " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
+    //
+    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "ArrayBuffer", function(src){console.log("_SUCCESS_"); self.port.emit("gotEpubFileBinary", { src: src, response: response }); }, function(data){console.log("_ERROR_"); console.log(data); self.port.emit("gotEpubFileBinary", { src: "{}", response: response }); });'
+    //
+    + '});',
 
     onAttach: function(worker) {
 
@@ -271,12 +249,47 @@ var inject = {
         _workers.push(worker);
 
         if (!worker.port) {
-            console.log("onAttach() !worker.port ??");
+            console.log("|||||||||||||||| onAttach() !worker.port ??");
             return;
         }
 
         worker.port.on('detach', function() {
             detachWorker(this);
+        });
+
+        worker.port.on("gotEpubFileText", function(raw) {
+
+            var src = raw.src;
+            var response = _responses["_"+raw.response];
+            delete _responses["_"+raw.response];
+            
+            
+            var bytes = encodeURI(src).split(/%..|./).length - 1;
+            // var m = encodeURIComponent(src).match(/%[89ABab]/g);
+            // bytes = src.length + (m ? m.length : 0);
+
+            response.contentType = "text/plain; charset=utf-8";
+
+            response.contentLength = bytes;
+
+            response.end(src);
+
+            console.log('}}}}}}}}}}}}}}} RESPONSE TEXT: ', JSON.stringify(response, '', '  '));
+        });
+
+        worker.port.on("gotEpubFileBinary", function(raw) {
+
+            var src = raw.src;
+            var response = _responses["_"+raw.response];
+            delete _responses["_"+raw.response];
+        
+            var bytes = src.byteLength;
+
+            response.contentLength = bytes;
+
+            response.end(src);
+
+            console.log('}}}}}}}}}}}}}}} RESPONSE BINARY: ', JSON.stringify(response, '', '  '));
         });
     }
 };
