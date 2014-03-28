@@ -222,7 +222,7 @@ define(['workers/Messages', 'idbFilesystem'], function(Messages, idbFilesystem){
 				success();
 				return;
 			}
-			requestFileSystem(context.PERSISTENT, 5*1024*1024*1024, function(fs){
+			context.requestFileSystem(context.PERSISTENT, 5*1024*1024*1024, function(fs){
 				rootDir = fs.root;
 				success();
 			}, wrapErrorHandler('init', '/', error));

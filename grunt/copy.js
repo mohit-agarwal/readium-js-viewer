@@ -12,7 +12,12 @@ module.exports = function(grunt) {
             }, {
                 expand: true,
                 cwd: 'firefox-addon/lib',
-                src: ['main.js'],
+                src: ['main.js', 'resource.js'],
+                dest: 'build/firefox-addon/lib'
+            }, {
+                expand: true,
+                cwd: 'firefox-addon/lib',
+                src: 'jetpack-protocol/**',
                 dest: 'build/firefox-addon/lib'
             }, {
                 expand: true,

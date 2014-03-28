@@ -553,10 +553,37 @@ Entry.prototype = {
   },
   toURL: function()
   {
-      var origin = location.protocol + '//' + location.host;
-      var url = 'filesystem:' + origin + DIR_SEPARATOR + storageType_.toLowerCase() +
-             this.fullPath;
+console.log(this.name); 
+console.log(this.filesystem);
+
+      //var origin = location.protocol + '//' + location.host;
+      //DIR_SEPARATOR + storageType_.toLowerCase() 
+      var url = 'readium://readium' + this.fullPath;
 console.log(url);
+
+console.log(location.href); //"resource://jid1-o4gyqlfagd1yhq-at-jetpack/readium/data/index.html?epub=filesystemz%3A///1395995929687291"
+
+console.log(location.origin); // "resource://jid1-o4gyqlfagd1yhq-at-jetpack"
+
+console.log(location.protocol); //"resource:"
+
+console.log(location.host); //"jid1-o4gyqlfagd1yhq-at-jetpack"
+console.log(location.hostname);
+
+console.log(location.pathname); ///"readium/data/index.html"
+
+console.log(location.hash); // after #
+
+console.log(location.search); // after ? "?epub=filesystem%3A///1395995929687291"
+
+console.log(this.fullPath); //"/" (root dir)
+
+// EPUB library jSON
+//rootDir // 1395995929687291
+//rooUrl // filesystem:///1395995929687291
+//packagePath // EPUB/package.opf
+
+//AJAX XmlHTTPRequest    filesystemz:///1395995929687291/META-INF/container.xml"
       return url;
   }
 };
@@ -629,23 +656,28 @@ FileEntry.prototype.file = function(successCallback, opt_errorCallback) {
   }*/
   successCallback(file);
 };
-FileEntry.prototype.toURL = function()
-{
-    if (this.file_ == null) {
-    var origin = location.protocol + '//' + location.host;
-    var url = 'filesystem:' + origin + DIR_SEPARATOR + storageType_.toLowerCase() +
-           this.fullPath;
-    console.log(url);
-    return url;
-        }
-    
-    var file = this.file_.blob_ == null ? this.file_ : this.file_.blob_;
-      file.lastModifiedDate = this.file_.lastModifiedDate;
-    var url = window.URL.createObjectURL(file);
-    console.log("OBJ url");
-    console.log(url);
-        return url;
-};
+// FileEntry.prototype.toURL = function()
+// {
+//     if (this.file_ == null) {
+// 
+//         //var origin = location.protocol + '//' + location.host;
+//         var url = 'filesystem:'+ DIR_SEPARATOR+ DIR_SEPARATOR + location.host + storageType_.toLowerCase() + this.fullPath;
+//   console.log(url);
+//   console.log(location.href);
+//   console.log(location.protocol);
+//   console.log(location.host);
+//   console.log(location.path);
+//   console.log(this.fullPath);
+//         return url;
+//         }
+//     
+//     var file = this.file_.blob_ == null ? this.file_ : this.file_.blob_;
+//       file.lastModifiedDate = this.file_.lastModifiedDate;
+//     var url = window.URL.createObjectURL(file);
+//     console.log("OBJ url");
+//     console.log(url);
+//         return url;
+// };
   
 /**
  * Interface representing a directory in the filesystem.
