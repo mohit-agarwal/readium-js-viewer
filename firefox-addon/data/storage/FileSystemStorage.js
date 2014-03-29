@@ -236,7 +236,7 @@ console.debug("++++++ deleteFile: " + path);
 
 console.debug("++++++ getPathUrl: " + path);
 
-			return rootDir.toURL() + path
+			return rootDir.toURL() + path;
 		},
 		initStorage : function(success, error){
 			if (rootDir){

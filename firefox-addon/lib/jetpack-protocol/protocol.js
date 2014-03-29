@@ -24,6 +24,8 @@ const IOService = Cc['@mozilla.org/network/io-service;1'].
 const URI = IOService.newURI.bind(IOService)
 const URIChannel = IOService.newChannel.bind(IOService)
 
+const BinOutStream = CC("@mozilla.org/binaryoutputstream;1", "nsIBinaryOutputStream")
+
 const Response = Base.extend({
   initialize: function initialize(uri, stream) {
     this.uri = this.originalURI = this.principalURI = uri
@@ -31,9 +33,17 @@ const Response = Base.extend({
     this._close = stream.close.bind(stream)
     this.contentLength = -1
     this.contentType = ''
+    
+    this._binaryStream = BinOutStream();
+    this._binaryStream.QueryInterface(Ci.nsIBinaryOutputStream)
+    this._binaryStream.setOutputStream(stream);
   },
   write: function write(content) {
     this._write(content, content.length)
+  },
+  writeBinary: function writeBinary(content) {
+console.log("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ: "+content.byteLength);
+      this._binaryStream.writeByteArray(content, content.byteLength);
   },
   end: function end(content) {
     if (content) this.write(content)
