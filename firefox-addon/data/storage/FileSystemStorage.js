@@ -125,6 +125,17 @@ console.debug("++++++ makeDir: " + dirname);
 			readBlob: function(blob, dataType, callback){
 				var reader = new FileReader();
 				reader.onloadend = function(e){
+
+if (dataType === "ArrayBuffer")
+{
+    console.log("BLOB");
+    
+    //var binary = new Uint8Array(reader.result);
+    var binary = reader.result;
+    
+    callback(binary);
+    return;
+}
 					callback(reader.result);
 				}
 				reader["readAs" + dataType](blob);

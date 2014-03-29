@@ -1,5 +1,8 @@
 'use strict';
 
+const windows = require("sdk/windows");
+const windowUtils = require("sdk/window/utils");
+
 const tabs = require("sdk/tabs");
 const timers = require('sdk/timers');
 const widgets = require("sdk/widget");
@@ -51,27 +54,26 @@ function getWorker(tab) {
     return undefined;
 }
 
-function getMimeType(uri, isText)
-{
+function getMimeType(uri, isText) {
     var mime = isText ? "text/plain" : "application/octet-stream";
 
     if (uri.indexOf(".js") > 0) mime = "application/javascript";
     if (uri.indexOf(".json") > 0) mime = "application/json";
-    
+
     if (uri.indexOf(".xml") > 0) mime = "application/xml";
-    
+
     if (uri.indexOf(".css") > 0) mime = "text/css";
-    
+
     if (uri.indexOf(".opf") > 0) mime = "application/oebps-package+xml";
     if (uri.indexOf(".ncx") > 0) mime = "application/x-dtbncx+xml";
 
     if (uri.indexOf(".html") > 0) mime = "application/xhtml+xml"; // "text/html"
     if (uri.indexOf(".xhtml") > 0) mime = "application/xhtml+xml";
-    
+
     if (uri.indexOf(".smil") > 0) mime = "application/smil+xml";
-    
+
     if (uri.indexOf(".txt") > 0) mime = "text/plain";
-    
+
     if (uri.indexOf(".jpg") > 0) mime = "image/jpeg";
     if (uri.indexOf(".jpeg") > 0) mime = "image/jpeg";
     if (uri.indexOf(".gif") > 0) mime = "image/gif";
@@ -249,20 +251,24 @@ var inject = {
 
     // TODO: real script, real fetching of EPUB package data
     //contentScriptFile: data.url("element-getter.js"),
-    contentScript: 'self.port.on("getEpubFileText", function(raw) { var path = raw.path; var response = raw.response; '
+    contentScript: ' /*  unsafeWindow   window.wrappedJSObject  */ self.port.on("getEpubFileText", function(raw) { var path = raw.path; var response = raw.response; '
     //
-    + 'console.log("^^^^^^^ " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
+    + 'console.log("^^^^^^^ TXT " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
     //  TODO: document.defaultView.postMessage('blabla', '*');
     //window.addEventListener("message", function(event) { ... }, false);
-    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "Text", function(src){console.log("_SUCCESS TXT_"); self.port.emit("gotEpubFileText", { src: src, response: response }); }, function(data){console.log("_ERROR TXT_"); console.log(data); self.port.emit("gotEpubFileText", { src: undefined, response: response }); });'
+    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "Text", function(src){console.log("_SUCCESS TXT_"); self.port.emit("gotEpubFileText", { src: src, response: response, path: path }); }, function(data){console.log("_ERROR TXT_"); console.log(data); self.port.emit("gotEpubFileText", { src: undefined, response: response, path: path }); });'
     //
     + '});'
     //
     + 'self.port.on("getEpubFileBinary", function(raw) { var path = raw.path; var response = raw.response; '
     //
-    + 'console.log("^^^^^^^ " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
+    + 'console.log("^^^^^^^ BIN " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
     //
-    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "ArrayBuffer", function(src){console.log("_SUCCESS_"); self.port.emit("gotEpubFileBinary", { src: src, response: response }); }, function(data){console.log("_ERROR_"); console.log(data); self.port.emit("gotEpubFileBinary", { src: undefined, response: response }); });'
+    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "ArrayBuffer", '
+    //
+    + 'function(data){console.log("_SUCCESS BIN_"); console.log(data.byteLength); var data_ = new Uint8Array(data); console.log(data_.byteLength); var obj = { type: "gotEpubFileBinary", src: data_, response: response, path: path }; /* document.defaultView.postMessage() self.port.emit() self.postMessage(SINGLE_PARAM) */ /* self.postMessage(obj, [obj.src.buffer]); console.log("after postMessage"); console.log(obj.src.byteLength); */ unsafeWindow.postMessage(obj, "*" /* "readium://readium" */, [obj.src.buffer]); console.log("after WIN postMessage"); console.log(obj.src.byteLength); }, '
+    //
+    + 'function(data){console.log("_ERROR BIN_"); console.log(data); self.postMessage({ type: "gotEpubFileBinary", src: undefined, response: response, path: path }); });'
     //
     + '});',
 
@@ -279,16 +285,6 @@ var inject = {
 
         console.log("||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
 
-        // console.log(typeof worker);
-        // for (var prop in worker)
-        // {
-        //     if (true || worker.hasOwnProperty(prop))
-        //     {
-        //         console.log(prop);
-        //         console.log(worker[prop]);
-        //     }
-        // }
-
         console.log(worker.tab.title);
 
         _workers.push(worker);
@@ -303,10 +299,15 @@ var inject = {
         });
 
         worker.port.on("gotEpubFileText", function(raw) {
-
+            
             var src = raw.src;
+
+            console.log(raw.path);
+
             var response = _responses["_" + raw.response];
             delete _responses["_" + raw.response];
+
+            console.log("raw.response: " + raw.response);
 
             var bytes = src ? (encodeURI(src).split(/%..|./).length - 1) : 0;
             // var m = encodeURIComponent(src).match(/%[89ABab]/g);
@@ -318,23 +319,43 @@ var inject = {
             response.contentLength = bytes;
 
             response.end(src);
-            
-            if (response.uri.indexOf("epub_library.json") >= 0)
-            {
-                console.log(":::::::::::::: epub_library");
+
+            if (response.uri.indexOf("epub_library.json") >= 0) {
+                console.log(":::::::::::::: epub_library" + raw.path);
                 console.log(src);
             }
 
             console.log('}}}}}}}}}}}}}}} RESPONSE TEXT: ', JSON.stringify(response, '', '  '));
         });
 
-        worker.port.on("gotEpubFileBinary", function(raw) {
+        var messageProc = function(raw) {
+            console.log("message");
+            console.log(raw.type);
+            if (raw.type !== "gotEpubFileBinary") return;
+
 
             var src = raw.src;
+            console.log(src.length);
+            console.log(src.byteLength);
+            src = new Uint8Array(src);
+
+            console.log(raw.path);
+
+            console.log(src.length);
+            console.log(src.byteLength);
+
+            //console.log(src);
+
             var response = _responses["_" + raw.response];
             delete _responses["_" + raw.response];
 
+            console.log("raw.response: " + raw.response);
+
             var bytes = src ? src.byteLength : 0;
+
+            console.log("TTTTT");
+            console.log(src.byteLength);
+            console.log(bytes);
 
             var mime = getMimeType(response.uri);
             response.contentType = mime;
@@ -344,10 +365,72 @@ var inject = {
             response.end(src);
 
             console.log('}}}}}}}}}}}}}}} RESPONSE BINARY: ', JSON.stringify(response, '', '  '));
+        };
+
+        // worker.on("message", messageProc);
+        
+        worker.on("message", function(data)
+        {
+            console.log("message");
         });
+
+        worker.onmessage = function(e) {
+            
+            console.log('onmessage');
+
+            // var raw = e.data;
+            // 
+            // messageProc(raw);
+        };
+
+        //var gBrowser = windowUtils.getMostRecentBrowserWindow().getBrowser();
+        windowUtils.getMostRecentBrowserWindow().content.addEventListener("message", function(e) {
+            
+            console.log('addEventListener "message"');
+                        // 
+            // var raw = e.data;
+            // 
+            // messageProc(raw);
+        }, false);
+        
+        for each (let window in windowUtils.windows()) {
+console.log("......................addEventListener ...");
+            window.content.addEventListener("message", function(e) {
+                
+                console.log('addEventListener "message"');
+                            // 
+                // var raw = e.data;
+                // 
+                // messageProc(raw);
+            }, false);
+        }
+        
+        
+        var win = windowUtils.getFocusedWindow();
+        win.content.addEventListener("message", function(e) {
+                
+                console.log('addEventListener "message"');
+                            // 
+                // var raw = e.data;
+                // 
+                // messageProc(raw);
+            }, false);
+console.log("......................addEventListener ...3");
     }
 };
-
+            
+        windows.browserWindows.on("open", domWindow => {
+console.log("......................addEventListener ... 2");
+            windowUtils.getMostRecentBrowserWindow().content.addEventListener("message", function(e) {
+                
+                console.log('addEventListener "message"');
+                            // 
+                // var raw = e.data;
+                // 
+                // messageProc(raw);
+            }, false);
+        });
+        
 var injectWorker = function() {
     var worker = getWorker(tabs.activeTab);
     if (!worker) {
