@@ -91,6 +91,7 @@ function getMimeType(uri, isText) {
     if (uri.indexOf(".woff") > 0) mime = "application/x-font-woff";
     if (uri.indexOf(".ttf") > 0) mime = "font/ttf";
     
+console.log("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM WWWWWWWWWW DEFAULT MIME TYPE: " + uri);
     return mime + (isText ? "; charset=utf-8" : "");
 }
 

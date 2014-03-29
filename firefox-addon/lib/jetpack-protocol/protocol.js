@@ -55,7 +55,9 @@ exports.AbstractHandler = {
   newChannel: function newChannel(uri) {
     var channel, pipe, response, request
 
-    pipe = Pipe(true, true, 0, 0, null)
+    const PR_UINT32_MAX = 0xffffffff; 
+    pipe = Pipe(true, true, 0, PR_UINT32_MAX, null)
+    
     request = { uri: uri.spec }
     response = Response.new(request.uri, pipe.outputStream)
 
