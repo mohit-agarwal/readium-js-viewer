@@ -7,22 +7,12 @@ module.exports = function(grunt) {
             files: [{
                 expand: true,
                 cwd: 'firefox-addon',
-                src: ['icons/*.*', 'package.json'],
+                src: ['icons/*.*', 'package.json', 'lib/**'],
                 dest: 'build/firefox-addon'
             }, {
                 expand: true,
-                cwd: 'firefox-addon/lib',
-                src: ['main.js', 'resource.js'],
-                dest: 'build/firefox-addon/lib'
-            }, {
-                expand: true,
-                cwd: 'firefox-addon/lib',
-                src: 'jetpack-protocol/**',
-                dest: 'build/firefox-addon/lib'
-            }, {
-                expand: true,
                 cwd: 'firefox-addon/data',
-                src: ['index.html', 'extended-config.js'],
+                src: ['index.html', '*.js'],
                 dest: 'build/firefox-addon/data'
             }, {
                 expand: true,

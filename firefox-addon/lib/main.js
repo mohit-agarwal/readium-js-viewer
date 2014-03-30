@@ -9,144 +9,161 @@
 
 const windows = require("sdk/windows");
 const windowUtils = require("sdk/window/utils");
-
 const tabs = require("sdk/tabs");
 const timers = require('sdk/timers');
 const widgets = require("sdk/widget");
 const pageMod = require("sdk/page-mod");
-
-const protocol = require('./jetpack-protocol/index');
-const resource = require('resource');
-
-// var self = require('self') // Simulator
-// var self = new function Self() {
-//         const dataDir = rootDir + 'data/';
-//         this.data = {
-//             url: function(path) {
-//                 return rootDir + path;
-//             }
-//         }
-//     };
 const self = require("sdk/self");
 
-const URI_SCHEME = "readium";
-
-// readium/
-const rootDir = module.id.substr(0, module.id.lastIndexOf('/') + 1);
+const URI_SCHEME = self.name; //"readium"
+const URI_DOMAIN = URI_SCHEME;
+//const URI_DOMAIN = module.id.substr(0, module.id.lastIndexOf('/') + 1);
 
 //resource://jid1-o4gyqlfagd1yhq-at-jetpack/readium/data/index.html
-const readiumURL = self.data.url("index.html");
+//resource://{{self.id}}/{{self.name}}/data/index.html
+const URI_INDEX_RESOURCE = self.data.url("index.html");
+const URI_INDEX_READIUM = URI_SCHEME + "://" + URI_DOMAIN; // + "/index.html";
 
-// TODO: Firefox > 28
-// //https://developer.mozilla.org/en-US/Add-ons/SDK/Low-Level_APIs/ui_button_action
-// var {
-//     ActionButton
-// } = require("sdk/ui/button/action");
-// var button = ActionButton({
-//     id: "readium",
-//     label: "Readium, EPUB reader",
-//     icon: {
-//         "16": "images/readium_favicon.png",
-//         "32": "icons/readium_logo_48.png"
-//     },
-//     onClick: function(state) {
-//         var url = URI_SCHEME + "://" + rootDir;
-//         tabs.open(url);
-//     }
-// });
+//resource:readium or resource://readium/
+require('resource').set(URI_SCHEME, URI_INDEX_READIUM);
 
 
-function addToolbarButton(win) {
+if (false) { //Firefox > 28
+    // TODO: 
+    // //https://developer.mozilla.org/en-US/Add-ons/SDK/Low-Level_APIs/ui_button_action
+    // var {
+    //     ActionButton
+    // } = require("sdk/ui/button/action");
+    // var button = ActionButton({
+    //     id: URI_SCHEME,
+    //     label: "Readium, EPUB reader",
+    //     icon: {
+    //         "16": "images/readium_favicon.png",
+    //         "32": "icons/readium_logo_48.png"
+    //     },
+    //     onClick: function(state) {
+    //         var url = URI_SCHEME + "://" + URI_DOMAIN + "/";
+    //         tabs.open(url);
+    //     }
+    // });
+} else {
 
-    var xulDocument = win.document;
-    if (!xulDocument) {
-        win = windowUtils.getMostRecentBrowserWindow();
+    const {
+        Cc, Ci
+    } = require("chrome");
+
+    const windowMediator = Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator);
+
+    var removeToolbarButton_document = function(xulDocument) {
+
+        if (!xulDocument) return;
+
+        var btn = xulDocument.getElementById(URI_SCHEME + '-button');
+        if (btn) {
+            btn.parentNode.removeChild(btn);
+            // var navBar = xulDocument.getElementById('nav-bar');
+            // if (navBar) {
+            //     navBar.removeChild(btn);
+            // }
+        }
+    };
+
+    var removeToolbarButton_window = function(win) {
+
+        if (!win) return;
+
+        removeToolbarButton_document(win.document);
+    };
+
+    var removeToolbarButton_windows = function() {
+
+        var enumerator = windowMediator.getEnumerator("navigator:browser");
+        while (enumerator.hasMoreElements()) {
+            removeToolbarButton_window(enumerator.getNext());
+        }
+    };
+
+    exports.onUnload = function(reason) {
+        removeToolbarButton_windows();
+    };
+
+    var addToolbarButton = function(win) {
+
+        if (!win) return;
+
+        var xulDocument = win.document;
+        if (!xulDocument) return;
+
+        var navBar = xulDocument.getElementById("nav-bar");
+        if (!navBar) return;
+
+        var btn = xulDocument.getElementById(URI_SCHEME + '-button');
+        if (btn) {
+            btn.parentNode.removeChild(btn);
+        }
+
+        btn = xulDocument.createElement("toolbarbutton");
+
+        btn.setAttribute('id', URI_SCHEME + '-button');
+        btn.setAttribute('type', 'button');
+        btn.setAttribute('class', 'toolbarbutton-1');
+        btn.setAttribute('image', self.data.url("images/readium_favicon.png")); // path is relative to data folder
+        btn.setAttribute('orient', 'horizontal');
+        btn.setAttribute('label', 'Readium, EPUB reader');
+
+        btn.addEventListener('click',
+            function() {
+                var url = URI_SCHEME + "://" + URI_DOMAIN + "/";
+                tabs.open(url);
+            }, false);
+
+        navBar.appendChild(btn);
+    };
+
+    var ensureToolBarButton = function(win) {
+        removeToolbarButton_window(win);
         addToolbarButton(win);
-        return;
-    }
+    };
 
-    var navBar = xulDocument.getElementById("nav-bar");
-    if (!navBar) {
-        return;
-    }
+    windows.browserWindows.on('open', function(win) {
 
-    var btn = xulDocument.getElementById('readium-button');
-    if (btn) {
-        return;
-    }
+        //win = windowMediator.getMostRecentWindow('navigator:browser');
+        win = windowUtils.getMostRecentBrowserWindow();
 
-    btn = xulDocument.createElement("toolbarbutton");
+        ensureToolBarButton(win);
+    });
 
-    btn.setAttribute('id', 'readium-button');
-    btn.setAttribute('type', 'button');
-    btn.setAttribute('class', 'toolbarbutton-1');
-    btn.setAttribute('image', self.data.url("images/readium_favicon.png")); // path is relative to data folder
-    btn.setAttribute('orient', 'horizontal');
-    btn.setAttribute('label', 'Readium, EPUB reader');
-    btn.addEventListener('click', function() {
-        var url = URI_SCHEME + "://" + rootDir;
-        tabs.open(url);
-    }, false);
-
-    navBar.appendChild(btn);
+    timers.setTimeout(function() {
+        var win = windowUtils.getMostRecentBrowserWindow();
+        ensureToolBarButton(win);
+    }, 1000);
 }
-
-
-function removeToolbarButton_document(xulDocument) {
-    var navBar = xulDocument.getElementById('nav-bar');
-    var btn = xulDocument.getElementById('readium-button');
-    if (navBar && btn) {
-        navBar.removeChild(btn);
-    }
-}
-
-function removeToolbarButton_window(win) {
-    removeToolbarButton_document(win.document);
-}
-
-function removeToolbarButton_windows() {
-
-    var {Cc, Ci} = require("chrome");
-    var mediator = Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator);
-    //var xulDocument = mediator.getMostRecentWindow('navigator:browser').document;
-
-    //var xulDocument = windowUtils.getMostRecentBrowserWindow().document;
-
-    var enumerator = mediator.getEnumerator("navigator:browser");
-    while (enumerator.hasMoreElements()) {
-        removeToolbarButton_window(enumerator.getNext());
-    }
-}
-exports.onUnload = function(reason) {
-    removeToolbarButton_windows();
-};
-
-windows.browserWindows.on('open', function(win) {
-    addToolbarButton(win);
-});
 
 var widget = widgets.Widget({
-    id: "readium-widget",
+    id: URI_SCHEME + "-widget",
     label: "Readium, EPUB reader",
     contentURL: self.data.url("images/readium_favicon.png"),
     onClick: function() {
         //var url = self.data.url("index.html");
-        //var url = "resource://" + rootDir;
-        //var url = URI_SCHEME + "://" + rootDir + "index.html";
-        var url = URI_SCHEME + "://" + rootDir;
+        //var url = "resource://" + URI_DOMAIN + "/";
+        //var url = URI_SCHEME + "://" + URI_DOMAIN + "/index.html";
+        var url = URI_SCHEME + "://" + URI_DOMAIN + "/";
         tabs.open(url);
     }
 });
 
-timers.setTimeout(function() {
-    var win = windowUtils.getMostRecentBrowserWindow();
-    removeToolbarButton_window(win);
-    addToolbarButton(win);
-}, 1000);
 
-//resource:readium or resource://readium/
-resource.set('readium', readiumURL);
-//resource.set('readium', URI_SCHEME + "://" + rootDir + "index.html");
+
+
+
+
+
+
+
+
+
+
+
 
 
 var _workers = [];
@@ -173,42 +190,10 @@ function getWorker(tab) {
     return undefined;
 }
 
-function getMimeType(uri, isText) {
-    var mime = isText ? "text/plain" : "application/octet-stream";
-
-    if (uri.indexOf(".js") > 0) mime = "application/javascript";
-    if (uri.indexOf(".json") > 0) mime = "application/json";
-
-    if (uri.indexOf(".xml") > 0) mime = "application/xml";
-
-    if (uri.indexOf(".css") > 0) mime = "text/css";
-
-    if (uri.indexOf(".opf") > 0) mime = "application/oebps-package+xml";
-    if (uri.indexOf(".ncx") > 0) mime = "application/x-dtbncx+xml";
-
-    if (uri.indexOf(".html") > 0) mime = "application/xhtml+xml"; // "text/html"
-    if (uri.indexOf(".xhtml") > 0) mime = "application/xhtml+xml";
-
-    if (uri.indexOf(".smil") > 0) mime = "application/smil+xml";
-
-    if (uri.indexOf(".txt") > 0) mime = "text/plain";
-
-    if (uri.indexOf(".jpg") > 0) mime = "image/jpeg";
-    if (uri.indexOf(".jpeg") > 0) mime = "image/jpeg";
-    if (uri.indexOf(".gif") > 0) mime = "image/gif";
-    if (uri.indexOf(".png") > 0) mime = "image/png";
-
-
-    if (uri.indexOf(".woff") > 0) mime = "application/x-font-woff";
-    if (uri.indexOf(".ttf") > 0) mime = "font/ttf";
-
-    console.log("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM WWWWWWWWWW DEFAULT MIME TYPE: " + uri);
-    return mime + (isText ? "; charset=utf-8" : "");
-}
-
 var _responses = {};
 var _response = -1;
 
+const protocol = require('./jetpack-protocol/index');
 exports.handler = protocol.protocol(URI_SCHEME, {
     isAbsolute: function(uri) {
         return uri.indexOf(URI_SCHEME + ':') === 0
@@ -216,13 +201,13 @@ exports.handler = protocol.protocol(URI_SCHEME, {
     onRequest: function(request, response) {
         console.log('>>>>>>>>>> REQUEST: ', JSON.stringify(request, '', '  '));
 
-        var str = URI_SCHEME + "://" + rootDir;
+        var str = URI_SCHEME + "://" + URI_DOMAIN + "/";
 
         var token = URI_SCHEME + ":///";
 
-        // ensure non-empty domain (replace with rootDir)
+        // ensure non-empty domain (replace with URI_DOMAIN)
         var requesturi = request.uri;
-        if (requesturi.replace(/\//g, '') === "readium:") {
+        if (requesturi.replace(/\//g, '') === URI_SCHEME + ":") {
             requesturi = str;
             console.log("URI 1");
             response.uri = requesturi;
@@ -262,7 +247,7 @@ exports.handler = protocol.protocol(URI_SCHEME, {
                     var r = response;
                     _responses["_" + _response] = r;
 
-                    worker.port.emit("getEpubFileText", {
+                    worker.port.emit("READIUM_getEpubFileText", {
                         path: path,
                         response: _response
                     });
@@ -289,13 +274,13 @@ exports.handler = protocol.protocol(URI_SCHEME, {
                     _responses["_" + _response] = r;
 
                     if (isTXT) {
-                        worker.port.emit("getEpubFileText", {
+                        worker.port.emit("READIUM_getEpubFileText", {
                             path: path,
                             response: _response
                         });
 
                     } else {
-                        worker.port.emit("getEpubFileBinary", {
+                        worker.port.emit("READIUM_getEpubFileBinary", {
                             path: path,
                             response: _response
                         });
@@ -368,49 +353,14 @@ exports.handler.register();
 // exports.handler.unregister()
 
 
+const mimeTypes = require('mimeTypes');
 
 var inject = {
     contentScriptWhen: 'ready',
-    include: "readium://readium/*",
+    include: URI_SCHEME + "://" + URI_DOMAIN + "/*",
 
-    // TODO: real script, real fetching of EPUB package data
-    //contentScriptFile: data.url("element-getter.js"),
-    contentScript: ' /*  unsafeWindow   window.wrappedJSObject  */ if (unsafeWindow.ReadiumStaticStorageManager) { '
-    //
-    //+ 'self.unsafeWindow = unsafeWindow;'
-    //
-    //+ 'console.log(unsafeWindow.document.documentElement.outerHTML);'
-    //
-    + 'self.port.on("getEpubFileText", function(raw) { var path = raw.path; var response = raw.response; '
-    //
-    + 'console.log("^^^^^^^ TXT " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
-    //  TODO: document.defaultView.postMessage('blabla', '*');
-    //window.addEventListener("message", function(event) { ... }, false);
-    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "Text", function(src){console.log("_SUCCESS TXT_"); self.port.emit("gotEpubFileText", { src: src, response: response, path: path }); }, function(data){console.log("_ERROR TXT_"); console.log(data); self.port.emit("gotEpubFileText", { src: undefined, response: response, path: path }); });'
-    //
-    + '});'
-    //
-    + 'self.port.on("getEpubFileBinary", function(raw) { var path = raw.path; var response = raw.response; '
-    //
-    + 'console.log("^^^^^^^ BIN " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
-    //
-    + 'unsafeWindow.ReadiumStaticStorageManager.readFile(path, "ArrayBuffer", '
-    //
-    + 'function(data){console.log("_SUCCESS BIN_"); console.log(data.byteLength); '
-    //
-    + ' /* var data_ = new Uint8Array(data); console.log(data_.byteLength); */ var obj = { type: "gotEpubFileBinary", src: data, response: response, path: path }; '
-    //
-    + '/* document.defaultView.postMessage() self.port.emit() self.postMessage(SINGLE_PARAM) */ '
-    //
-    + '/* self.postMessage(obj, [obj.src.buffer]); console.log("after postMessage"); console.log(obj.src.byteLength); */ '
-    //
-    + 'unsafeWindow.postMessage("HELLO", "*"); unsafeWindow.postMessage(obj, "*" /* "readium://readium" */, [obj.src]); console.log("after WIN postMessage"); console.log(obj.src.byteLength); '
-    //
-    + '/* if (self.unsafeWindow !== unsafeWindow) console.log("%%%%% ££££££££££ @@@@@@@@@@ WTF??" + self.unsafeWindow); */ }, '
-    //
-    + 'function(data){console.log("_ERROR BIN_"); console.log(data); self.postMessage({ type: "gotEpubFileBinary", src: undefined, response: response, path: path }); });'
-    //
-    + '}); setTimeout(function(){ console.log("DELAY"); unsafeWindow.postMessage("ping", "*"); unsafeWindow.postMessage("pong", "readium://readium"); }, 1500); }',
+    contentScriptFile: self.data.url("contentScript.js"),
+    //contentScript: '',
 
     onAttach: function(worker) {
 
@@ -443,9 +393,9 @@ var inject = {
             detachWorker(this);
         });
 
-        worker.port.on("gotEpubFileText", function(raw) {
+        worker.port.on("READIUM_gotEpubFileText", function(raw) {
 
-            var src = raw.src;
+            var src = raw.fileContent;
 
             console.log(raw.path);
 
@@ -458,7 +408,7 @@ var inject = {
             // var m = encodeURIComponent(src).match(/%[89ABab]/g);
             // bytes = src.length + (m ? m.length : 0);
 
-            var mime = getMimeType(response.uri, true);
+            var mime = mimeTypes.get(response.uri, true);
             response.contentType = mime;
 
             response.contentLength = bytes;
@@ -476,10 +426,10 @@ var inject = {
         var messageProc = function(raw) {
             console.log("message");
             console.log(raw.type);
-            if (raw.type !== "gotEpubFileBinary") return;
+            if (raw.type !== "READIUM_gotEpubFileBinary") return;
 
 
-            var src = raw.src;
+            var src = raw.fileContent;
 
             console.log(src.length);
             console.log(src.byteLength);
@@ -503,7 +453,7 @@ var inject = {
             console.log(src.byteLength);
             console.log(bytes);
 
-            var mime = getMimeType(response.uri);
+            var mime = mimeTypes.get(response.uri);
             response.contentType = mime;
 
             response.contentLength = bytes;
