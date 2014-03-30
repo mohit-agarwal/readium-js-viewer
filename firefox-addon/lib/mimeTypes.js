@@ -1,17 +1,23 @@
 'use strict';
 
-function fileHasExtension(path, ext) {
-    var query = path.indexOf('?');
+function fileHasExtension(uri, ext) {
+    var query = uri.indexOf('?');
     if (query >= 0) {
-        path = path.substr(0, query); // excludes # hash fragment as well
+        uri = uri.substr(0, query); // excludes # hash fragment as well
     }
 
-    var i = path.indexOf(ext);
-    return i >= 0 && i === (path.length - ext.length);
+    var i = uri.indexOf(ext);
+    return i >= 0 && i === (uri.length - ext.length);
 }
 
-function getMimeType(uri, isText) {
-    var mime = isText ? "text/plain" : "application/octet-stream";
+function isText(uri) {
+    return fileHasExtension(uri, ".xml") || fileHasExtension(uri, ".html") || fileHasExtension(uri, ".xhtml") || fileHasExtension(uri, ".css") || fileHasExtension(uri, ".txt") || fileHasExtension(uri, ".opf") || fileHasExtension(uri, ".ncx") || fileHasExtension(uri, ".json") || fileHasExtension(uri, ".js") || fileHasExtension(uri, ".smil");
+};
+exports.isText = isText;
+
+function getMimeType(uri) {
+    var txt = isText(uri);
+    var mime = txt ? "text/plain" : "application/octet-stream";
 
     if (fileHasExtension(uri, ".js")) mime = "application/javascript";
     if (fileHasExtension(uri, ".json")) mime = "application/json";
@@ -39,7 +45,9 @@ function getMimeType(uri, isText) {
     if (fileHasExtension(uri, ".woff")) mime = "application/x-font-woff";
     if (fileHasExtension(uri, ".ttf")) mime = "font/ttf";
 
-    console.log("DEFAULT MIME TYPE (" + mime + "): " + uri);
-    return mime + (isText ? "; charset=utf-8" : "");
+    mime = mime + (txt ? "; charset=utf-8" : "");
+    
+    //console.log("MIME TYPE (" + mime + "): " + uri);
+    return mime;
 }
 exports.get = getMimeType;

@@ -42,7 +42,6 @@ const Response = Base.extend({
     this._write(content, content.length)
   },
   writeBinary: function writeBinary(content) {
-console.log("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ: "+content.byteLength);
       this._binaryStream.writeByteArray(content, content.byteLength);
   },
   end: function end(content) {

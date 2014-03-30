@@ -12,7 +12,6 @@ const windowUtils = require("sdk/window/utils");
 const tabs = require("sdk/tabs");
 const timers = require('sdk/timers');
 const widgets = require("sdk/widget");
-const pageMod = require("sdk/page-mod");
 const self = require("sdk/self");
 
 const URI_SCHEME = self.name; //"readium"
@@ -21,12 +20,12 @@ const URI_DOMAIN = URI_SCHEME;
 
 //resource://jid1-o4gyqlfagd1yhq-at-jetpack/readium/data/index.html
 //resource://{{self.id}}/{{self.name}}/data/index.html
-const URI_INDEX_RESOURCE = self.data.url("index.html");
-const URI_INDEX_READIUM = URI_SCHEME + "://" + URI_DOMAIN; // + "/index.html";
+const URI_INDEX_READIUM = URI_SCHEME + "://" + URI_DOMAIN + "/"; // trailing slash is important!
+const URI_EPUB_READIUM = URI_SCHEME + "://epub/"; // trailing slash is important!
+//const URI_INDEX_RESOURCE = self.data.url("index.html");
 
-//resource:readium or resource://readium/
-require('resource').set(URI_SCHEME, URI_INDEX_READIUM);
-
+//window.READIUM_crossDomainFilter
+//const crossDomainFilter = URI_SCHEME + "://" + URI_DOMAIN;
 
 if (false) { //Firefox > 28
     // TODO: 
@@ -113,30 +112,28 @@ if (false) { //Firefox > 28
 
         btn.addEventListener('click',
             function() {
-                var url = URI_SCHEME + "://" + URI_DOMAIN + "/";
-                tabs.open(url);
+                openReadium();
             }, false);
 
         navBar.appendChild(btn);
     };
 
-    var ensureToolBarButton = function(win) {
+    var ensureToolBarButton_window = function(win) {
         removeToolbarButton_window(win);
         addToolbarButton(win);
     };
 
-    windows.browserWindows.on('open', function(win) {
+    var ensureToolBarButton = function() {
 
-        //win = windowMediator.getMostRecentWindow('navigator:browser');
-        win = windowUtils.getMostRecentBrowserWindow();
-
-        ensureToolBarButton(win);
-    });
-
-    timers.setTimeout(function() {
+        //var win = windowMediator.getMostRecentWindow('navigator:browser');
         var win = windowUtils.getMostRecentBrowserWindow();
-        ensureToolBarButton(win);
-    }, 1000);
+
+        ensureToolBarButton_window(win);
+    };
+
+    windows.browserWindows.on('open', ensureToolBarButton);
+
+    timers.setTimeout(ensureToolBarButton, 1000);
 }
 
 var widget = widgets.Widget({
@@ -144,51 +141,85 @@ var widget = widgets.Widget({
     label: "Readium, EPUB reader",
     contentURL: self.data.url("images/readium_favicon.png"),
     onClick: function() {
-        //var url = self.data.url("index.html");
-        //var url = "resource://" + URI_DOMAIN + "/";
-        //var url = URI_SCHEME + "://" + URI_DOMAIN + "/index.html";
-        var url = URI_SCHEME + "://" + URI_DOMAIN + "/";
-        tabs.open(url);
+        openReadium();
     }
 });
 
+//resource:readium or resource://readium/
+require('resource').set(URI_SCHEME, URI_INDEX_READIUM);
 
+var openReadium = function() {
+    //var url = self.data.url("index.html");
+    //var url = "resource://" + URI_SCHEME;
+    var url = URI_SCHEME + "://" + URI_DOMAIN + "/";
 
+    tabs.once('open', function(tab) {
+        // console.log("~~~ TAB OPEN: " + tab.window); // BrowserWindow
+        tab.once('ready', function(tab) {
+            var win = windowUtils.getMostRecentBrowserWindow().content; //.wrappedJSObject;
 
+            // console.log("~~~ TAB READY: " + win); //XrayWrapper Window
+            // console.log(win.READIUM_ROOT_INDEX);
+            // console.log(win.document.documentElement.outerHTML);
 
+            setupContentBridge(win);
+        });
+    });
 
+    tabs.open(url);
+};
 
+const mimeTypes = require('mimeTypes');
 
+var gotFileContent = function(payload) {
 
+    var binary = payload.type === "READIUM_gotEpubFileBinary";
 
+    if (!binary && payload.type !== "READIUM_gotEpubFileText") return;
 
+    var response = _responses["_" + payload.response];
+    delete _responses["_" + payload.response];
 
+    response.contentType = mimeTypes.get(response.uri);
 
+    var fileContent = payload.fileContent;
 
+    if (binary) {
 
-var _workers = [];
+        fileContent = new Uint8Array(fileContent);
 
-function detachWorker(worker) {
-    console.log("########### detach?");
-    var index = _workers.indexOf(worker);
-    if (index != -1) {
-        console.log("########### detachWorker");
-        _workers.splice(index, 1);
+        response.contentLength = fileContent.byteLength;
+
+        response.writeBinary(fileContent);
+        response.end();
+
+    } else { // "READIUM_gotEpubFileText"
+        // var m = encodeURIComponent(fileContent).match(/%[89ABab]/g);
+        // bytes = fileContent.length + (m ? m.length : 0);
+        response.contentLength = encodeURI(fileContent).split(/%..|./).length - 1;
+
+        response.end(fileContent);
     }
-}
+};
 
-function getWorker(tab) {
-    for (var i = _workers.length - 1; i >= 0; i--) {
-        if (_workers[i].tab === tab) {
-            var winn = windowUtils.getMostRecentBrowserWindow().content;
-            if (_workers[i].win !== winn) {
-                console.log("?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? WINDOW DIFF");
+var setupContentBridge = function(win) {
+    win.addEventListener("message",
+        function(e) {
+            var payload = e.data;
+            if (!payload || !payload.type) return;
+
+            if (payload.type === "PING") {
+                console.log("<<<<<<<<< PONG: " + payload.msg);
+                return;
             }
-            return _workers[i];
-        }
-    }
-    return undefined;
-}
+
+            gotFileContent(payload);
+        }, false);
+};
+
+
+
+
 
 var _responses = {};
 var _response = -1;
@@ -199,142 +230,152 @@ exports.handler = protocol.protocol(URI_SCHEME, {
         return uri.indexOf(URI_SCHEME + ':') === 0
     },
     onRequest: function(request, response) {
-        console.log('>>>>>>>>>> REQUEST: ', JSON.stringify(request, '', '  '));
+        //console.log('>>>>>>>>>> REQUEST: ', JSON.stringify(request, '', '  '));
 
-        var str = URI_SCHEME + "://" + URI_DOMAIN + "/";
-
-        var token = URI_SCHEME + ":///";
-
-        // ensure non-empty domain (replace with URI_DOMAIN)
-        var requesturi = request.uri;
-        if (requesturi.replace(/\//g, '') === URI_SCHEME + ":") {
-            requesturi = str;
-            console.log("URI 1");
-            response.uri = requesturi;
-
-            //injectWorker();
+        // ensure non-empty domain (adds URI_DOMAIN if missing, and redirects URI request)
+        if (response.uri.replace(/\//g, '') === URI_SCHEME + ":") {
+            response.uri = URI_INDEX_READIUM;
             return;
-        } else if (requesturi.indexOf(token) === 0) {
-            requesturi = requesturi.replace(token, str);
-            console.log("URI 2");
-            response.uri = requesturi;
-
-            //injectWorker();
+        }
+        var emptyDomain = URI_SCHEME + ":///";
+        if (response.uri.indexOf(emptyDomain) === 0) {
+            response.uri = URI_INDEX_READIUM + response.uri.substr(emptyDomain.length);
             return;
         }
 
-        var index = requesturi.indexOf(str);
-        if (index === 0) {
-            //readium://readium/images/library_arrow.png?test=daniel#id
-            //readium://readium/index.html?test=daniel#id
-            //readium://readium/?test=daniel#id
+        var isReadiumCore = request.uri.indexOf(URI_INDEX_READIUM) === 0;
+        var isReadiumEpub = request.uri.indexOf(URI_EPUB_READIUM) === 0;
 
-            var path = requesturi.substr(str.length);
+        if (!URI_INDEX_READIUM && !URI_EPUB_READIUM) {
+            console.log(">>>>>>>>>> Invalid Readium URI request?!");
 
-            if (path === "epub_library.json") {
-                console.log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FETCH epub_library.json");
+            response.contentType = "text/html";
+            response.write('<h1>Not READIUM?!</h1>');
+            response.end('<br>');
+            return;
+        }
 
-                injectWorker();
-                timers.setTimeout(function() {
-                    var worker = getWorker(tabs.activeTab);
-                    if (!worker) {
-                        console.log("NO WORKER?!?");
-                        response.contentType = "text/plain; charset=utf-8";
-                        response.end("Please use the Readium icon (Firefox's bottom-right corner)");
-                        return;
-                    }
-                    _response++;
-                    var r = response;
-                    _responses["_" + _response] = r;
+        var path = isReadiumCore ? request.uri.substr(URI_INDEX_READIUM.length) : request.uri.substr(URI_EPUB_READIUM.length);
 
-                    worker.port.emit("READIUM_getEpubFileText", {
+        var isJSONLib = path === "epub_library.json";
+        var isEPUBData = isReadiumEpub || !isJSONLib && /^[0-9]/.test(path.charAt(0));
+
+        if (isJSONLib || isEPUBData) {
+
+            // console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+            // var win1 = windows.browserWindows.activeWindow;
+            // console.log(win1);
+            //console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+            var win = windowUtils.getMostRecentBrowserWindow().content;
+            //console.log(win2.document.documentElement.outerHTML);
+            //console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+            //var win = _window;
+            //console.log(win.document.documentElement.outerHTML);
+            //console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+
+            // console.log("------- " + path);
+            //             win = null;
+            //             //for each (var w in windows.browserWindows) {
+            //             for each (var w in windowUtils.windows()) {
+            //                 if (w.content) w = w.content;
+            // console.log(w);
+            //             
+            //                 // any will do, all instances have access to the same indexedDB filesystem
+            //                 if (w && w.ReadiumStaticStorageManager) {
+            //                     win = w;
+            //                     break;
+            //                 }
+            //             }
+            // console.log("========");
+
+            //console.log(win.document.getElementsByTagName("head")[0].outerHTML);
+
+            if (!win || !win.wrappedJSObject || !win.wrappedJSObject.READIUM_ROOT_INDEX) {
+                console.log(">>>>>>>>>> No Readium WINDOW: " + request.uri);
+                // if (isJSONLib) {
+                //     console.log("isJSONLib");
+                //     response.contentType = "application/json";
+                //     response.contentLength = 2;
+                //     response.write('[]');
+                // }
+                response.end();
+                return;
+            }
+
+            if (isJSONLib) {
+
+                _response++;
+                var r = response;
+                _responses["_" + _response] = r;
+
+                var post = function(ir) {
+                    win.postMessage({
+                        type: "READIUM_getEpubFileText",
+                        path: path,
+                        response: ir
+                    }, win.wrappedJSObject.READIUM_crossDomainFilter);
+                };
+                var ir = _response;
+                try {
+                    post(ir);
+                } catch (e) {
+                    console.log("TOO EARLY?");
+                    timers.setTimeout(function() {
+                        post(ir);
+                    }, 500);
+                }
+
+            } else if (isEPUBData) {
+
+                _response++;
+                var r = response;
+                _responses["_" + _response] = r;
+
+                if (mimeTypes.isText(path)) {
+                    win.postMessage({
+                        type: "READIUM_getEpubFileText",
                         path: path,
                         response: _response
-                    });
-                }, 100);
-
-                return;
-            } else if (/^[0-9]/.test(path.charAt(0))) { // EPUB package data!
-                console.log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EPUB: " + path);
-
-                var isTXT = path.indexOf(".xml") >= 0 || path.indexOf(".html") >= 0 || path.indexOf(".xhtml") >= 0 || path.indexOf(".css") >= 0 || path.indexOf(".txt") >= 0 || path.indexOf(".opf") >= 0 || path.indexOf(".ncx") >= 0 || path.indexOf(".json") >= 0 || path.indexOf(".js") >= 0 || path.indexOf(".smil") >= 0;
-                console.log("isTXT: " + isTXT);
-
-                injectWorker();
-                timers.setTimeout(function() {
-                    var worker = getWorker(tabs.activeTab);
-                    if (!worker) {
-                        console.log("NO WORKER?!?");
-                        response.contentType = "text/plain; charset=utf-8";
-                        response.end("Please use the Readium icon (Firefox's bottom-right corner)");
-                        return;
-                    }
-                    _response++;
-                    var r = response;
-                    _responses["_" + _response] = r;
-
-                    if (isTXT) {
-                        worker.port.emit("READIUM_getEpubFileText", {
-                            path: path,
-                            response: _response
-                        });
-
-                    } else {
-                        worker.port.emit("READIUM_getEpubFileBinary", {
-                            path: path,
-                            response: _response
-                        });
-
-                    }
-                }, 100);
-
-                return;
+                    }, win.wrappedJSObject.READIUM_crossDomainFilter);
+                } else {
+                    win.postMessage({
+                        type: "READIUM_getEpubFileBinary",
+                        path: path,
+                        response: _response
+                    }, win.wrappedJSObject.READIUM_crossDomainFilter);
+                }
             }
-
-            var query = path.indexOf('?');
-            if (query >= 0) {
-                var l = query;
-                query = path.substr(query);
-                path = path.substr(0, l);
-            } else {
-                query = "";
-            }
-            console.log("query: " + query);
-            var hash = query.indexOf('#');
-            if (hash >= 0) {
-                var ll = hash;
-                hash = query.substr(hash);
-                query = query.substr(0, ll);
-            } else {
-                hash = "";
-            }
-            console.log("hash: " + hash);
-            var url = self.data.url("index.html");
-            if (path.length > 0) {
-                url = self.data.url(path);
-            }
-            url = url + query + hash;
-
-            console.log("url: " + url);
-            console.log("***************** URL: " + url);
-            response.uri = url;
 
             return;
         }
 
-        response.uri = "http://daisy.org";
-        return;
+        var query = path.indexOf('?');
+        if (query >= 0) {
+            var l = query;
+            query = path.substr(query);
+            path = path.substr(0, l);
+        } else {
+            query = "";
+        }
+        //console.log("query: " + query);
+        var hash = query.indexOf('#');
+        if (hash >= 0) {
+            var ll = hash;
+            hash = query.substr(hash);
+            query = query.substr(0, ll);
+        } else {
+            hash = "";
+        }
+        //console.log("hash: " + hash);
+        var url = self.data.url("index.html");
+        if (path.length > 0) {
+            url = self.data.url(path);
+        }
+        url = url + query + hash;
 
-
-
-        // response.contentType = "text/html";
-        // response.write('Hello ');
-        // response.write('<h1>Jedi is an awsome dude with a lightsaber!!</h1>');
-        // response.end('World !');
-
-
+        //console.log("***************** URL: " + url);
+        response.uri = url;
     },
-
     //onResolve: function(relative, base) {
     // if (this.isAbsolute(relative))
     // {
@@ -351,198 +392,3 @@ exports.handler = protocol.protocol(URI_SCHEME, {
 });
 exports.handler.register();
 // exports.handler.unregister()
-
-
-const mimeTypes = require('mimeTypes');
-
-var inject = {
-    contentScriptWhen: 'ready',
-    include: URI_SCHEME + "://" + URI_DOMAIN + "/*",
-
-    contentScriptFile: self.data.url("contentScript.js"),
-    //contentScript: '',
-
-    onAttach: function(worker) {
-
-        var win = windowUtils.getMostRecentBrowserWindow().content;
-        //if (!win.ReadiumStaticStorageManager) return;
-
-        worker.win = win;
-
-        if (!worker.tab) {
-            console.log("onAttach() !worker.tab => skip...");
-            return;
-        }
-
-        if (worker.tab !== tabs.activeTab) {
-            console.log("worker.tab  !== tabs.activeTab ?");
-        }
-
-        console.log("||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
-
-        console.log(worker.tab.title);
-
-        _workers.push(worker);
-
-        if (!worker.port) {
-            console.log("|||||||||||||||| onAttach() !worker.port ??");
-            return;
-        }
-
-        worker.port.on('detach', function() {
-            detachWorker(this);
-        });
-
-        worker.port.on("READIUM_gotEpubFileText", function(raw) {
-
-            var src = raw.fileContent;
-
-            console.log(raw.path);
-
-            var response = _responses["_" + raw.response];
-            delete _responses["_" + raw.response];
-
-            console.log("raw.response: " + raw.response);
-
-            var bytes = src ? (encodeURI(src).split(/%..|./).length - 1) : 0;
-            // var m = encodeURIComponent(src).match(/%[89ABab]/g);
-            // bytes = src.length + (m ? m.length : 0);
-
-            var mime = mimeTypes.get(response.uri, true);
-            response.contentType = mime;
-
-            response.contentLength = bytes;
-
-            response.end(src);
-
-            if (response.uri.indexOf("epub_library.json") >= 0) {
-                console.log(":::::::::::::: epub_library" + raw.path);
-                console.log(src);
-            }
-
-            console.log('}}}}}}}}}}}}}}} RESPONSE TEXT: ', JSON.stringify(response, '', '  '));
-        });
-
-        var messageProc = function(raw) {
-            console.log("message");
-            console.log(raw.type);
-            if (raw.type !== "READIUM_gotEpubFileBinary") return;
-
-
-            var src = raw.fileContent;
-
-            console.log(src.length);
-            console.log(src.byteLength);
-            src = new Uint8Array(src);
-
-            console.log(raw.path);
-
-            console.log(src.length);
-            console.log(src.byteLength);
-
-            //console.log(src);
-
-            var response = _responses["_" + raw.response];
-            delete _responses["_" + raw.response];
-
-            console.log("raw.response: " + raw.response);
-
-            var bytes = src ? src.byteLength : 0;
-
-            console.log("TTTTT");
-            console.log(src.byteLength);
-            console.log(bytes);
-
-            var mime = mimeTypes.get(response.uri);
-            response.contentType = mime;
-
-            response.contentLength = bytes;
-
-            response.writeBinary(src);
-            response.end();
-
-            console.log('}}}}}}}}}}}}}}} RESPONSE BINARY: ', JSON.stringify(response, '', '  '));
-        };
-
-        // worker.on("message", messageProc);
-        // 
-        // worker.on("message", function(data)
-        // {
-        //     console.log("message");
-        // });
-        // 
-        // worker.onmessage = function(e) {
-        //     
-        //     console.log('onmessage');
-        // 
-        //     // var raw = e.data;
-        //     // 
-        //     // messageProc(raw);
-        // };
-
-        //console.log(windowUtils.getMostRecentBrowserWindow().content.document.documentElement.outerHTML);
-
-        win.addEventListener("message", function(e) {
-
-            console.log('..............................addEventListener "message"   ' + e.data);
-
-            if (!e.data.type) return;
-
-            var raw = e.data;
-            messageProc(raw);
-
-        }, false);
-        // 
-        //         //var gBrowser = windowUtils.getMostRecentBrowserWindow().getBrowser();
-        //         windowUtils.getMostRecentBrowserWindow().content.addEventListener("message", function(e) {
-        //             
-        //             console.log('addEventListener "message"');
-        //                         // 
-        //             // var raw = e.data;
-        //             // 
-        //             // messageProc(raw);
-        //         }, false);
-        //         
-        //         for each (let window in windowUtils.windows()) {
-        // console.log("......................addEventListener ...");
-        //             window.content.addEventListener("message", function(e) {
-        //                 
-        //                 console.log('addEventListener "message"');
-        //                             // 
-        //                 // var raw = e.data;
-        //                 // 
-        //                 // messageProc(raw);
-        //             }, false);
-        //         }
-        //         
-        //         
-        //         var win = windowUtils.getFocusedWindow();
-        //         win.content.addEventListener("message", function(e) {
-        //                 
-        //                 console.log('addEventListener "message"');
-        //                             // 
-        //                 // var raw = e.data;
-        //                 // 
-        //                 // messageProc(raw);
-        //             }, false);
-        // console.log("......................addEventListener ...3");
-    }
-};
-
-var injectWorker = function() {
-    var worker = getWorker(tabs.activeTab);
-    if (!worker) {
-        console.log("~~~~~~~~~~~~~~~~~~~ INJECT WORKER");
-
-        var worker = tabs.activeTab.attach(inject);
-        inject.onAttach(worker);
-    }
-    // timers.setTimeout(function() {
-    //         console.log("TAB onAtttach");
-    // 
-    //         var worker = getWorker(tabs.activeTab);
-    //         inject.onAttach(worker);
-    // }, 100);
-}
-
-//pageMod.PageMod(inject);

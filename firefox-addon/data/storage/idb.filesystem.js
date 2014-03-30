@@ -33,7 +33,7 @@ if (!window.Worker || window.forceIframeWorker) {
 	if (window.Worker) window.nativeWorker = window.Worker;
 	window.Worker = function (script) {
 		var worker = this;
-console.debug(script);
+
 		// prepare and inject iframe
 		worker._iframeEl = document.createElement('iframe');
 		worker._iframeEl.style.visibility = 'hidden';
@@ -46,7 +46,7 @@ console.debug(script);
 			doc = this.contentWindow.document;
 
 			function injectScript(script, callback) {
-console.debug(script);
+
 				var scriptEl = doc.createElement('script');
 				scriptEl.src = script;
 				scriptEl.type = 'text/javascript';
@@ -110,7 +110,7 @@ console.debug(script);
 		//this._iframeEl.src = window.Worker.iframeURI;
         var base = window.Worker.baseURI + "/" + window.Worker.iframeURI;
         base = ".";
-console.log(window.location.href);
+
         this._iframeEl.srcdoc = '<!DOCTYPE html><html lang="en"><head><base href="' + base + '"><meta charset=UTF-8><title>iframe worker</title></head><body></body></html>';
         
 		(document.getElementsByTagName('head')[0] || document.body).appendChild(this._iframeEl);
@@ -553,37 +553,10 @@ Entry.prototype = {
   },
   toURL: function()
   {
-console.log(this.name); 
-console.log(this.filesystem);
-
       //var origin = location.protocol + '//' + location.host;
       //DIR_SEPARATOR + storageType_.toLowerCase() 
       var url = 'readium://readium' + this.fullPath;
-console.log(url);
 
-console.log(location.href); //"resource://jid1-o4gyqlfagd1yhq-at-jetpack/readium/data/index.html?epub=filesystemz%3A///1395995929687291"
-
-console.log(location.origin); // "resource://jid1-o4gyqlfagd1yhq-at-jetpack"
-
-console.log(location.protocol); //"resource:"
-
-console.log(location.host); //"jid1-o4gyqlfagd1yhq-at-jetpack"
-console.log(location.hostname);
-
-console.log(location.pathname); ///"readium/data/index.html"
-
-console.log(location.hash); // after #
-
-console.log(location.search); // after ? "?epub=filesystem%3A///1395995929687291"
-
-console.log(this.fullPath); //"/" (root dir)
-
-// EPUB library jSON
-//rootDir // 1395995929687291
-//rooUrl // filesystem:///1395995929687291
-//packagePath // EPUB/package.opf
-
-//AJAX XmlHTTPRequest    filesystemz:///1395995929687291/META-INF/container.xml"
       return url;
   }
 };
@@ -656,28 +629,6 @@ FileEntry.prototype.file = function(successCallback, opt_errorCallback) {
   }*/
   successCallback(file);
 };
-// FileEntry.prototype.toURL = function()
-// {
-//     if (this.file_ == null) {
-// 
-//         //var origin = location.protocol + '//' + location.host;
-//         var url = 'filesystem:'+ DIR_SEPARATOR+ DIR_SEPARATOR + location.host + storageType_.toLowerCase() + this.fullPath;
-//   console.log(url);
-//   console.log(location.href);
-//   console.log(location.protocol);
-//   console.log(location.host);
-//   console.log(location.path);
-//   console.log(this.fullPath);
-//         return url;
-//         }
-//     
-//     var file = this.file_.blob_ == null ? this.file_ : this.file_.blob_;
-//       file.lastModifiedDate = this.file_.lastModifiedDate;
-//     var url = window.URL.createObjectURL(file);
-//     console.log("OBJ url");
-//     console.log(url);
-//         return url;
-// };
   
 /**
  * Interface representing a directory in the filesystem.
@@ -792,12 +743,8 @@ DirectoryEntry.prototype.getDirectory = function(path, options, successCallback,
 DirectoryEntry.prototype.getFile = function(path, options, successCallback,
                                             opt_errorCallback) {
 
-console.debug("DirectoryEntry.prototype.getFile 1: " + path);
-
   // Create an absolute path if we were handed a relative one.
   path = resolveToFullPath_(this.fullPath, path);
-
-console.debug("DirectoryEntry.prototype.getFile 2: " + path);
 
   idb_.get(path, function(fileEntry) {
     if (!options) {
@@ -884,7 +831,6 @@ function DOMFileSystem(type, size) {
   //this.name = (location.protocol + location.host).replace(/:/g, '_') + ':' + storageType_;
   this.name = ("readium:readium").replace(/:/g, '_') + ':' + storageType_;
   
-console.debug("DOMFileSystem: " + this.name);
   this.root = new DirectoryEntry();
   this.root.fullPath = DIR_SEPARATOR;
   this.root.filesystem = this;
@@ -916,7 +862,7 @@ function resolveLocalFileSystemURL(url, callback, opt_errorCallback) {
 
 idb_.open = function(dbName, successCallback, opt_errorCallback) {
   var self = this;
-console.debug("idb_.open: " + dbName);
+
   // TODO: FF 12.0a1 isn't liking a db name with : in it.
   var request = indexedDB.open(dbName.replace(':', '_')/*, 1 /*version*/);
 
