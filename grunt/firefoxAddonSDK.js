@@ -9,7 +9,7 @@ module.exports = function(grunt) {
         var firefoxJetpackPath = "/Applications/addon-sdk-1.16";
         var buildFolder = path.join(process.cwd(), 'build/firefox-addon');
         
-        grunt.task.run('shell:firefoxAddonSDK:' + firefoxJetpackPath + ':' + buildFolder);
+        grunt.task.run('shell:firefoxAddonSDK:' + firefoxJetpackPath + ':' + buildFolder + ':run'); // run, or xpi
         //var opt = grunt.option('??');
     });
     

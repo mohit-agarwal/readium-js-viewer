@@ -7,7 +7,7 @@ module.exports = function(grunt) {
             files: [{
                 expand: true,
                 cwd: 'firefox-addon',
-                src: ['package.json'],
+                src: ['icons/*.*', 'package.json'],
                 dest: 'build/firefox-addon'
             }, {
                 expand: true,

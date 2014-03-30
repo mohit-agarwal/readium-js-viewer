@@ -2,8 +2,14 @@
   "name": "readium",
   "title": "Readium, EPUB reader",
   "id": "jid1-o4gyqLFAgd1yHQ",
-  "description": "Port of the Readium Chrome extension to a Firefox add-on (JetPack SDK)",
+  "description": "Experimental port of the Readium Chrome extension to a Firefox add-on (using Mozilla's JetPack SDK)",
   "author": "Readium Foundation",
   "license": "MIT",
-  "version": "2.13.4"
+  "version": "2.13.4",
+  "homepage": "http://readium.org",
+  "icon64": "icons/readium_logo_64.png",
+  "icon": "icons/readium_logo_48.png",
+  "permissions_unsafeWindow-:(": {
+    "cross-domain-content": ["readium://epub", "readium://readium"]
+  }
 }

@@ -1,5 +1,12 @@
 'use strict';
 
+// TODO: remove address bar?
+//const addonpage = require("sdk/addon-page");
+
+// TODO: redirect console?
+// const cons = require("console/plain-text");
+// const console = PlainTextConsole();
+
 const windows = require("sdk/windows");
 const windowUtils = require("sdk/window/utils");
 
@@ -30,6 +37,112 @@ const rootDir = module.id.substr(0, module.id.lastIndexOf('/') + 1);
 //resource://jid1-o4gyqlfagd1yhq-at-jetpack/readium/data/index.html
 const readiumURL = self.data.url("index.html");
 
+// TODO: Firefox > 28
+// //https://developer.mozilla.org/en-US/Add-ons/SDK/Low-Level_APIs/ui_button_action
+// var {
+//     ActionButton
+// } = require("sdk/ui/button/action");
+// var button = ActionButton({
+//     id: "readium",
+//     label: "Readium, EPUB reader",
+//     icon: {
+//         "16": "images/readium_favicon.png",
+//         "32": "icons/readium_logo_48.png"
+//     },
+//     onClick: function(state) {
+//         var url = URI_SCHEME + "://" + rootDir;
+//         tabs.open(url);
+//     }
+// });
+
+
+function addToolbarButton(win) {
+
+    var xulDocument = win.document;
+    if (!xulDocument) {
+        win = windowUtils.getMostRecentBrowserWindow();
+        addToolbarButton(win);
+        return;
+    }
+
+    var navBar = xulDocument.getElementById("nav-bar");
+    if (!navBar) {
+        return;
+    }
+
+    var btn = xulDocument.getElementById('readium-button');
+    if (btn) {
+        return;
+    }
+
+    btn = xulDocument.createElement("toolbarbutton");
+
+    btn.setAttribute('id', 'readium-button');
+    btn.setAttribute('type', 'button');
+    btn.setAttribute('class', 'toolbarbutton-1');
+    btn.setAttribute('image', self.data.url("images/readium_favicon.png")); // path is relative to data folder
+    btn.setAttribute('orient', 'horizontal');
+    btn.setAttribute('label', 'Readium, EPUB reader');
+    btn.addEventListener('click', function() {
+        var url = URI_SCHEME + "://" + rootDir;
+        tabs.open(url);
+    }, false);
+
+    navBar.appendChild(btn);
+}
+
+
+function removeToolbarButton_document(xulDocument) {
+    var navBar = xulDocument.getElementById('nav-bar');
+    var btn = xulDocument.getElementById('readium-button');
+    if (navBar && btn) {
+        navBar.removeChild(btn);
+    }
+}
+
+function removeToolbarButton_window(win) {
+    removeToolbarButton_document(win.document);
+}
+
+function removeToolbarButton_windows() {
+
+    var {Cc, Ci} = require("chrome");
+    var mediator = Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator);
+    //var xulDocument = mediator.getMostRecentWindow('navigator:browser').document;
+
+    //var xulDocument = windowUtils.getMostRecentBrowserWindow().document;
+
+    var enumerator = mediator.getEnumerator("navigator:browser");
+    while (enumerator.hasMoreElements()) {
+        removeToolbarButton_window(enumerator.getNext());
+    }
+}
+exports.onUnload = function(reason) {
+    removeToolbarButton_windows();
+};
+
+windows.browserWindows.on('open', function(win) {
+    addToolbarButton(win);
+});
+
+var widget = widgets.Widget({
+    id: "readium-widget",
+    label: "Readium, EPUB reader",
+    contentURL: self.data.url("images/readium_favicon.png"),
+    onClick: function() {
+        //var url = self.data.url("index.html");
+        //var url = "resource://" + rootDir;
+        //var url = URI_SCHEME + "://" + rootDir + "index.html";
+        var url = URI_SCHEME + "://" + rootDir;
+        tabs.open(url);
+    }
+});
+
+timers.setTimeout(function() {
+    var win = windowUtils.getMostRecentBrowserWindow();
+    removeToolbarButton_window(win);
+    addToolbarButton(win);
+}, 1000);
 
 //resource:readium or resource://readium/
 resource.set('readium', readiumURL);
@@ -49,11 +162,9 @@ function detachWorker(worker) {
 
 function getWorker(tab) {
     for (var i = _workers.length - 1; i >= 0; i--) {
-        if (_workers[i].tab === tab)
-        {
+        if (_workers[i].tab === tab) {
             var winn = windowUtils.getMostRecentBrowserWindow().content;
-            if (_workers[i].win !== winn)
-            {
+            if (_workers[i].win !== winn) {
                 console.log("?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? WINDOW DIFF");
             }
             return _workers[i];
@@ -86,12 +197,12 @@ function getMimeType(uri, isText) {
     if (uri.indexOf(".jpeg") > 0) mime = "image/jpeg";
     if (uri.indexOf(".gif") > 0) mime = "image/gif";
     if (uri.indexOf(".png") > 0) mime = "image/png";
-    
+
 
     if (uri.indexOf(".woff") > 0) mime = "application/x-font-woff";
     if (uri.indexOf(".ttf") > 0) mime = "font/ttf";
-    
-console.log("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM WWWWWWWWWW DEFAULT MIME TYPE: " + uri);
+
+    console.log("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM WWWWWWWWWW DEFAULT MIME TYPE: " + uri);
     return mime + (isText ? "; charset=utf-8" : "");
 }
 
@@ -266,11 +377,11 @@ var inject = {
     //contentScriptFile: data.url("element-getter.js"),
     contentScript: ' /*  unsafeWindow   window.wrappedJSObject  */ if (unsafeWindow.ReadiumStaticStorageManager) { '
     //
-    + 'self.unsafeWindow = unsafeWindow;'
+    //+ 'self.unsafeWindow = unsafeWindow;'
     //
     //+ 'console.log(unsafeWindow.document.documentElement.outerHTML);'
     //
-    +'self.port.on("getEpubFileText", function(raw) { var path = raw.path; var response = raw.response; '
+    + 'self.port.on("getEpubFileText", function(raw) { var path = raw.path; var response = raw.response; '
     //
     + 'console.log("^^^^^^^ TXT " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));'
     //  TODO: document.defaultView.postMessage('blabla', '*');
@@ -287,15 +398,15 @@ var inject = {
     //
     + 'function(data){console.log("_SUCCESS BIN_"); console.log(data.byteLength); '
     //
-    +' /* var data_ = new Uint8Array(data); console.log(data_.byteLength); */ var obj = { type: "gotEpubFileBinary", src: data, response: response, path: path }; '
+    + ' /* var data_ = new Uint8Array(data); console.log(data_.byteLength); */ var obj = { type: "gotEpubFileBinary", src: data, response: response, path: path }; '
     //
-    +'/* document.defaultView.postMessage() self.port.emit() self.postMessage(SINGLE_PARAM) */ '
+    + '/* document.defaultView.postMessage() self.port.emit() self.postMessage(SINGLE_PARAM) */ '
     //
-    +'/* self.postMessage(obj, [obj.src.buffer]); console.log("after postMessage"); console.log(obj.src.byteLength); */ '
+    + '/* self.postMessage(obj, [obj.src.buffer]); console.log("after postMessage"); console.log(obj.src.byteLength); */ '
     //
-    +'unsafeWindow.postMessage("HELLO", "*"); unsafeWindow.postMessage(obj, "*" /* "readium://readium" */, [obj.src]); console.log("after WIN postMessage"); console.log(obj.src.byteLength); '
+    + 'unsafeWindow.postMessage("HELLO", "*"); unsafeWindow.postMessage(obj, "*" /* "readium://readium" */, [obj.src]); console.log("after WIN postMessage"); console.log(obj.src.byteLength); '
     //
-    +'/* if (self.unsafeWindow !== unsafeWindow) console.log("%%%%% ££££££££££ @@@@@@@@@@ WTF??" + self.unsafeWindow); */ }, '
+    + '/* if (self.unsafeWindow !== unsafeWindow) console.log("%%%%% ££££££££££ @@@@@@@@@@ WTF??" + self.unsafeWindow); */ }, '
     //
     + 'function(data){console.log("_ERROR BIN_"); console.log(data); self.postMessage({ type: "gotEpubFileBinary", src: undefined, response: response, path: path }); });'
     //
@@ -333,7 +444,7 @@ var inject = {
         });
 
         worker.port.on("gotEpubFileText", function(raw) {
-            
+
             var src = raw.src;
 
             console.log(raw.path);
@@ -369,7 +480,7 @@ var inject = {
 
 
             var src = raw.src;
-            
+
             console.log(src.length);
             console.log(src.byteLength);
             src = new Uint8Array(src);
@@ -404,7 +515,7 @@ var inject = {
         };
 
         // worker.on("message", messageProc);
-                // 
+        // 
         // worker.on("message", function(data)
         // {
         //     console.log("message");
@@ -420,66 +531,54 @@ var inject = {
         // };
 
         //console.log(windowUtils.getMostRecentBrowserWindow().content.document.documentElement.outerHTML);
-        
+
         win.addEventListener("message", function(e) {
-            
+
             console.log('..............................addEventListener "message"   ' + e.data);
 
             if (!e.data.type) return;
 
             var raw = e.data;
             messageProc(raw);
-            
+
         }, false);
-// 
-//         //var gBrowser = windowUtils.getMostRecentBrowserWindow().getBrowser();
-//         windowUtils.getMostRecentBrowserWindow().content.addEventListener("message", function(e) {
-//             
-//             console.log('addEventListener "message"');
-//                         // 
-//             // var raw = e.data;
-//             // 
-//             // messageProc(raw);
-//         }, false);
-//         
-//         for each (let window in windowUtils.windows()) {
-// console.log("......................addEventListener ...");
-//             window.content.addEventListener("message", function(e) {
-//                 
-//                 console.log('addEventListener "message"');
-//                             // 
-//                 // var raw = e.data;
-//                 // 
-//                 // messageProc(raw);
-//             }, false);
-//         }
-//         
-//         
-//         var win = windowUtils.getFocusedWindow();
-//         win.content.addEventListener("message", function(e) {
-//                 
-//                 console.log('addEventListener "message"');
-//                             // 
-//                 // var raw = e.data;
-//                 // 
-//                 // messageProc(raw);
-//             }, false);
-// console.log("......................addEventListener ...3");
+        // 
+        //         //var gBrowser = windowUtils.getMostRecentBrowserWindow().getBrowser();
+        //         windowUtils.getMostRecentBrowserWindow().content.addEventListener("message", function(e) {
+        //             
+        //             console.log('addEventListener "message"');
+        //                         // 
+        //             // var raw = e.data;
+        //             // 
+        //             // messageProc(raw);
+        //         }, false);
+        //         
+        //         for each (let window in windowUtils.windows()) {
+        // console.log("......................addEventListener ...");
+        //             window.content.addEventListener("message", function(e) {
+        //                 
+        //                 console.log('addEventListener "message"');
+        //                             // 
+        //                 // var raw = e.data;
+        //                 // 
+        //                 // messageProc(raw);
+        //             }, false);
+        //         }
+        //         
+        //         
+        //         var win = windowUtils.getFocusedWindow();
+        //         win.content.addEventListener("message", function(e) {
+        //                 
+        //                 console.log('addEventListener "message"');
+        //                             // 
+        //                 // var raw = e.data;
+        //                 // 
+        //                 // messageProc(raw);
+        //             }, false);
+        // console.log("......................addEventListener ...3");
     }
 };
 
-//         windows.browserWindows.on("open", domWindow => {
-// console.log("......................addEventListener ... 2");
-//             windowUtils.getMostRecentBrowserWindow().content.addEventListener("message", function(e) {
-//                 
-//                 console.log('addEventListener "message"');
-//                             // 
-//                 // var raw = e.data;
-//                 // 
-//                 // messageProc(raw);
-//             }, false);
-//         });
-        
 var injectWorker = function() {
     var worker = getWorker(tabs.activeTab);
     if (!worker) {
@@ -497,21 +596,3 @@ var injectWorker = function() {
 }
 
 //pageMod.PageMod(inject);
-
-var widget = widgets.Widget({
-    id: "readium",
-    label: "Readium EPUB reader",
-    contentURL: self.data.url("images/readium_favicon.png"),
-    onClick: function() {
-        //var url = self.data.url("index.html");
-        //var url = "resource://" + rootDir;
-        //var url = URI_SCHEME + "://" + rootDir + "index.html";
-        var url = URI_SCHEME + "://" + rootDir;
-
-        tabs.open(url);
-        // 
-        // timers.setTimeout(function() {
-        //     injectWorker();
-        // }, 100);
-    }
-});

@@ -13,8 +13,8 @@ module.exports = function(grunt) {
                         cwd: process.cwd()
                     }
                 },
-                command: function(sdkPath, buildPath) {
-                    return 'cd "' + sdkPath + '" && ls -als ./ && source "bin/activate" && ls -als "' + buildPath + '" && cfx --verbose run --pkgdir="' + buildPath + '" -a firefox';
+                command: function(sdkPath, buildPath, command) {
+                    return 'cd "' + sdkPath + '" && ls -als ./ && source "bin/activate" && ls -als "' + buildPath + '" && cfx --verbose ' + command + ' --pkgdir="' + buildPath + '" -a firefox && cp readium.xpi "' + buildPath + '"';
                 }
             }
         }

@@ -9,7 +9,7 @@ require.config({
             'canHandleDirectory': false //TODO: see EpubLibraryManager.handleDirectoryImport, only File.mozFullPath is supported => no directory file chooser, no full-folder import :(
         },
         'EpubReader': {
-            'annotationCssUrl': self.location.origin + '/css/annotations.css'
+            'annotationCssUrl': 'readium://readium/css/annotations.css'
         }
     }
 });
