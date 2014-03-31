@@ -29,8 +29,8 @@ function getMimeType(uri) {
     if (fileHasExtension(uri, ".opf")) mime = "application/oebps-package+xml";
     if (fileHasExtension(uri, ".ncx")) mime = "application/x-dtbncx+xml";
 
-    if (fileHasExtension(uri, ".html")) mime = "application/xhtml+xml"; // "text/html"
-    if (fileHasExtension(uri, ".xhtml")) mime = "application/xhtml+xml";
+    if (fileHasExtension(uri, ".html")) mime = "text/html";
+    if (fileHasExtension(uri, ".xhtml")) mime = "application/xhtml+xml"
 
     if (fileHasExtension(uri, ".smil")) mime = "application/smil+xml";
 
@@ -43,11 +43,21 @@ function getMimeType(uri) {
 
 
     if (fileHasExtension(uri, ".woff")) mime = "application/x-font-woff";
-    if (fileHasExtension(uri, ".ttf")) mime = "font/ttf";
-
-    mime = mime + (txt ? "; charset=utf-8" : "");
+    if (fileHasExtension(uri, ".otf")) mime = "application/vnd.ms-opentype"; //"font/otf";
+    if (fileHasExtension(uri, ".ttf")) mime = "application/vnd.ms-opentype"; //"font/ttf";
     
-    //console.log("MIME TYPE (" + mime + "): " + uri);
+
+    if (fileHasExtension(uri, ".mp4")) mime = "audio/mp4";
+    if (fileHasExtension(uri, ".m4a")) mime = "audio/mp4";
+    if (fileHasExtension(uri, ".aac")) mime = "audio/mp4";
+    if (fileHasExtension(uri, ".mp3")) mime = "audio/mpeg";
+    if (fileHasExtension(uri, ".wav")) mime = "audio/wav";
+    
+    
+
+    mime = mime + (txt ? "; charset=UTF-8" : "");
+    
+//console.log("MIME TYPE (" + mime + "): " + uri);
     return mime;
 }
 exports.get = getMimeType;

@@ -27,6 +27,15 @@ var setupContentBridge = function() {
 
                     function(fileContent) {
                         payback.fileContent = fileContent;
+// 
+// console.log("^^^^^^^^^^^^^^^^^^^^^^");
+// console.log("^^^^^^^^^^^^^^^^^^^^^^");
+//                         // payback.fileContent = payback.fileContent.trim();
+//                         // payback.fileContent = payback.fileContent.replace('<?xml version="1.0" encoding="utf-8"?>', "");
+//                         // payback.fileContent = payback.fileContent.replace('<!DOCTYPE html>', "");
+// console.log(payback.fileContent);
+// console.log("^^^^^^^^^^^^^^^^^^^^^^");
+// console.log("^^^^^^^^^^^^^^^^^^^^^^");
                         unsafeWindow.postMessage(payback, window.READIUM_crossDomainFilter);
                     },
                     function(data) {

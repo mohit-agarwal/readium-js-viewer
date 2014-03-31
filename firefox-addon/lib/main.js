@@ -14,6 +14,8 @@ const timers = require('sdk/timers');
 const widgets = require("sdk/widget");
 const self = require("sdk/self");
 
+const readiumWindow = require('readiumWindow');
+
 const URI_SCHEME = self.name; //"readium"
 const URI_DOMAIN = URI_SCHEME;
 //const URI_DOMAIN = module.id.substr(0, module.id.lastIndexOf('/') + 1);
@@ -163,14 +165,18 @@ tabs.on('open', function(tab) {
 });
 
 var tabReady = function(tab) {
-    var win = windowUtils.getMostRecentBrowserWindow().content;
-
-    // console.log("~~~ TAB READY: " + win); //XrayWrapper Window
-    // console.log(win.wrappedJSObject.READIUM_ROOT_INDEX);
-    // console.log(win.document.documentElement.outerHTML);
-    if (win.wrappedJSObject && win.wrappedJSObject.READIUM_ROOT_INDEX) {
+    var win = readiumWindow.get();
+    if (win) {
         setupContentBridge(win);
     }
+
+    // var win = windowUtils.getMostRecentBrowserWindow().content;
+    // // console.log("~~~ TAB READY: " + win); //XrayWrapper Window
+    // // console.log(win.wrappedJSObject.READIUM_ROOT_INDEX);
+    // // console.log(win.document.documentElement.outerHTML);
+    // if (win.wrappedJSObject && win.wrappedJSObject.READIUM_ROOT_INDEX) {
+    //     setupContentBridge(win);
+    // }
 };
 
 if (tabs.activeTab) {
@@ -179,7 +185,7 @@ if (tabs.activeTab) {
 
 const mimeTypes = require('mimeTypes');
 
-var gotFileContent = function(payload) {
+var gotFileContent = function(payload, win) {
 
     var binary = payload.type === "READIUM_gotEpubFileBinary";
 
@@ -189,6 +195,8 @@ var gotFileContent = function(payload) {
     delete _responses["_" + payload.response];
 
     response.contentType = mimeTypes.get(response.uri);
+
+    // readiumWindow.consoleLog(response.uri + " ==> " + response.contentType, win);
 
     var fileContent = payload.fileContent;
 
@@ -206,27 +214,28 @@ var gotFileContent = function(payload) {
         // bytes = fileContent.length + (m ? m.length : 0);
         response.contentLength = encodeURI(fileContent).split(/%..|./).length - 1;
 
-        response.end(fileContent);
+        response.writeUnicode(fileContent);
+        response.end();
     }
 };
 
 var setupContentBridge = function(win) {
-    console.log("``````````` READIUM WIRE");
+
+    readiumWindow.consoleLog("``````````` READIUM WIRE", win);
+    
     win.addEventListener("message",
         function(e) {
             var payload = e.data;
             if (!payload || !payload.type) return;
 
             if (payload.type === "PING") {
-                console.log("<<<<<<<<< PONG: " + payload.msg);
+                readiumWindow.consoleLog("<<<<<<<<< PONG: " + payload.msg, win);
                 return;
             }
 
-            gotFileContent(payload);
+            gotFileContent(payload, win);
         }, false);
 };
-
-
 
 
 
@@ -273,22 +282,8 @@ exports.handler = protocol.protocol(URI_SCHEME, {
 
         if (isJSONLib || isEPUBData) {
 
-            // var win1 = windows.browserWindows.activeWindow;
-            //var win = windowUtils.getMostRecentBrowserWindow().content;
-
-            var win = null;
-            //for each (var w in windows.browserWindows) {
-            for each(var w in windowUtils.windows()) {
-                if (w.content) w = w.content;
-
-                // any will do, all instances have access to the same indexedDB filesystem
-                if (w && w.wrappedJSObject && w.wrappedJSObject.READIUM_ROOT_INDEX) {
-                    win = w;
-                    break;
-                }
-            }
-
-            if (!win || !win.wrappedJSObject || !win.wrappedJSObject.READIUM_ROOT_INDEX) {
+            var win = readiumWindow.get();
+            if (!win) {
                 console.log(">>>>>>>>>> No Readium WINDOW: " + request.uri);
                 response.end();
                 return;
@@ -311,7 +306,7 @@ exports.handler = protocol.protocol(URI_SCHEME, {
                 try {
                     post(ir);
                 } catch (e) {
-                    console.log("TOO EARLY?");
+                    readiumWindow.consoleLog("TOO EARLY?", win);
                     timers.setTimeout(function() {
                         post(ir);
                     }, 500);
@@ -368,7 +363,7 @@ exports.handler = protocol.protocol(URI_SCHEME, {
         response.uri = url;
 
         //console.log("URI: " + response.uri);
-        
+
         //readium://readium/?epub=readium%3A%2F%2Freadium%2F1396248306523121
         //readium://readium/?epub=readium://readium/1396248306523121
     },

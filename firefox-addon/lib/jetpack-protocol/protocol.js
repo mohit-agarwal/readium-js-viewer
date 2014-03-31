@@ -26,27 +26,45 @@ const URIChannel = IOService.newChannel.bind(IOService)
 
 const BinOutStream = CC("@mozilla.org/binaryoutputstream;1", "nsIBinaryOutputStream")
 
+const ConverterOutputStream = CC("@mozilla.org/intl/converter-output-stream;1", 'nsIConverterOutputStream')
+
 const Response = Base.extend({
   initialize: function initialize(uri, stream) {
+      this.stream = stream;
     this.uri = this.originalURI = this.principalURI = uri
+    
     this._write = stream.write.bind(stream)
     this._close = stream.close.bind(stream)
+
     this.contentLength = -1
     this.contentType = ''
     
-    this._binaryStream = BinOutStream();
-    this._binaryStream.QueryInterface(Ci.nsIBinaryOutputStream)
-    this._binaryStream.setOutputStream(stream);
   },
   write: function write(content) {
     this._write(content, content.length)
   },
+  writeUnicode: function writeUnicode(content) {
+          var cOut = ConverterOutputStream();
+      //https://developer.mozilla.org/en-US/docs/Writing_textual_data
+      //https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsIConverterOutputStream
+      cOut.init(this.stream, "UTF-8", 4096, Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER); //0x0000 --- "?".charCodeAt(0)
+      //cOut.QueryInterface(Ci.nsIConverterOutputStream)
+
+      cOut.writeString(content);
+    cOut.flush();
+    // 
+    // cOut.writeString("Umlaute: \u00FC \u00E4\n");
+    // cOut.writeString("Hebrew:  \u05D0 \u05D1\n");
+  },
   writeBinary: function writeBinary(content) {
-      this._binaryStream.writeByteArray(content, content.byteLength);
+      var _binaryStream = BinOutStream();
+      _binaryStream.QueryInterface(Ci.nsIBinaryOutputStream)
+      _binaryStream.setOutputStream(this.stream);
+      _binaryStream.writeByteArray(content, content.byteLength);
   },
   end: function end(content) {
     if (content) this.write(content)
-    this._close()
+    this._close() // calls flush
   }
 })
 

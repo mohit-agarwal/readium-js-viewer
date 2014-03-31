@@ -12,7 +12,8 @@ module.exports = function(grunt) {
         "cloudReader": ['clean:cloudReader', 'copy:cloudReader', 'cssmin:cloudReader', 'requirejs:cloudReader'],
         "cloudReaderWithEpub": ['clean:cloudReader', 'copy:cloudReader', 'copy:cloudReaderEpubContent', 'cssmin:cloudReader', 'requirejs:cloudReader'],
 
-        "firefoxAddon": ['clean:firefoxAddon', 'copy:firefoxAddon', 'cssmin:firefoxAddon', 'requirejs:firefoxAddon', 'requirejs:firefoxAddonWorker', 'firefoxAddonSDK'],
+        // we need to pass parameter, so we use dynamic task (see firefixAddonSDK.js)
+        //"firefoxAddon": ['clean:firefoxAddon', 'copy:firefoxAddon', 'cssmin:firefoxAddon', 'requirejs:firefoxAddon', 'requirejs:firefoxAddonWorker', 'firefoxAddonSDK'],
         
         "test": ['chromeApp', 'copy:prepareChromeAppTests', 'nodeunit:chromeApp'],
 

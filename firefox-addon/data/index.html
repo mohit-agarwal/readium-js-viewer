@@ -8,6 +8,18 @@
 window.READIUM_ROOT_INDEX = true;
 window.READIUM_crossDomainFilter = "*"; //"readium://readium";
 
+
+window.addEventListener("message",
+    function(e) {
+        var payload = e.data;
+        if (!payload || !payload.type) return;
+
+        if (payload.type === "READIUM_consoleLog") {
+            console.log(payload.msg);
+            return;
+        }
+    }, false);
+
 console.log(">>>>>>>>>>>>>>>>>>>>> PING 1");
 window.postMessage({
     type: "PING",

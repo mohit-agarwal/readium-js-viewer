@@ -5,7 +5,7 @@
   "description": "Experimental port of the Readium Chrome extension to a Firefox add-on (using Mozilla's JetPack SDK)",
   "author": "Readium Foundation",
   "license": "MIT",
-  "version": "2.13.4",
+  "version": "2.13.4.999",
   "homepage": "http://readium.org",
   "icon64": "icons/readium_logo_64.png",
   "icon": "icons/readium_logo_48.png",
