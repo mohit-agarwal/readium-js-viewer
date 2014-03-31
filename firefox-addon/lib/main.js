@@ -366,7 +366,11 @@ exports.handler = protocol.protocol(URI_SCHEME, {
         url = url + query + hash;
 
         response.uri = url;
-        console.log("URI: " + response.uri);
+
+        //console.log("URI: " + response.uri);
+        
+        //readium://readium/?epub=readium%3A%2F%2Freadium%2F1396248306523121
+        //readium://readium/?epub=readium://readium/1396248306523121
     },
     //onResolve: function(relative, base) {
     // if (this.isAbsolute(relative))

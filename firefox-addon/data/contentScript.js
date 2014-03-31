@@ -7,7 +7,7 @@ var setupContentBridge = function() {
         type: "PING",
         msg: "3) DOC READY"
     }, window.READIUM_crossDomainFilter);
-    
+
     var unsafeWindow = window;
 
     var respondText = function(payload) {
@@ -21,14 +21,22 @@ var setupContentBridge = function() {
             path: path
         };
 
-        unsafeWindow.ReadiumStaticStorageManager.readFile(path, "Text",
+        unsafeWindow.ReadiumStaticStorageManager.initStorage(
+            function() {
+                unsafeWindow.ReadiumStaticStorageManager.readFile(path, "Text",
 
-            function(fileContent) {
-                payback.fileContent = fileContent;
-                unsafeWindow.postMessage(payback, window.READIUM_crossDomainFilter);
-            },
-            function(data) {
-                console.log(payback.type + " ERROR: " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));
+                    function(fileContent) {
+                        payback.fileContent = fileContent;
+                        unsafeWindow.postMessage(payback, window.READIUM_crossDomainFilter);
+                    },
+                    function(data) {
+                        console.log(payback.type + " ERROR: " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));
+                        console.log(data);
+
+                        unsafeWindow.postMessage(payback, window.READIUM_crossDomainFilter);
+                    });
+            }, function(data) {
+                console.log(" FS ERROR: " + path);
                 console.log(data);
 
                 unsafeWindow.postMessage(payback, window.READIUM_crossDomainFilter);
@@ -46,20 +54,28 @@ var setupContentBridge = function() {
             path: path
         };
 
-        unsafeWindow.ReadiumStaticStorageManager.readFile(path, "ArrayBuffer",
+        unsafeWindow.ReadiumStaticStorageManager.initStorage(
+            function() {
+                unsafeWindow.ReadiumStaticStorageManager.readFile(path, "ArrayBuffer",
 
-            function(fileContent) {
-                payback.fileContent = fileContent; // ArrayBuffer
+                    function(fileContent) {
+                        payback.fileContent = fileContent; // ArrayBuffer
 
-                unsafeWindow.postMessage(payback, window.READIUM_crossDomainFilter, [payback.fileContent]);
-                // fast transferable ArrayBuffer, no structured copy
+                        unsafeWindow.postMessage(payback, window.READIUM_crossDomainFilter, [payback.fileContent]);
+                        // fast transferable ArrayBuffer, no structured copy
 
-                // document.defaultView.postMessage()
-                // self.port.emit()
-                // self.postMessage
-            },
-            function(data) {
-                console.log(payback.type + " ERROR: " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));
+                        // document.defaultView.postMessage()
+                        // self.port.emit()
+                        // self.postMessage
+                    },
+                    function(data) {
+                        console.log(payback.type + " ERROR: " + unsafeWindow.ReadiumStaticStorageManager.getPathUrl(path));
+                        console.log(data);
+
+                        unsafeWindow.postMessage(payback, window.READIUM_crossDomainFilter);
+                    });
+            }, function(data) {
+                console.log(" FS ERROR: " + path);
                 console.log(data);
 
                 unsafeWindow.postMessage(payback, window.READIUM_crossDomainFilter);
