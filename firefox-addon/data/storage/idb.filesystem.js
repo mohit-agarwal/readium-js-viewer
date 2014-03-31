@@ -555,7 +555,9 @@ Entry.prototype = {
   {
       //var origin = location.protocol + '//' + location.host;
       //DIR_SEPARATOR + storageType_.toLowerCase() 
-      var url = 'readium://readium' + this.fullPath;
+      var scheme = "readium:"; //location.protocol;
+      //if (scheme==="about:")scheme="resource:";
+      var url = scheme + '//readium' + this.fullPath;
 
       return url;
   }

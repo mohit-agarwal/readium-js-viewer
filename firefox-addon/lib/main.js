@@ -146,28 +146,36 @@ var widget = widgets.Widget({
 });
 
 //resource:readium or resource://readium/
-require('resource').set(URI_SCHEME, URI_INDEX_READIUM);
+require('resource').set(URI_SCHEME, self.data.url("index.html"));
+//require('resource').set(URI_SCHEME, URI_INDEX_READIUM + "index.html");
 
 var openReadium = function() {
     //var url = self.data.url("index.html");
     //var url = "resource://" + URI_SCHEME;
     var url = URI_SCHEME + "://" + URI_DOMAIN + "/";
 
-    tabs.once('open', function(tab) {
-        // console.log("~~~ TAB OPEN: " + tab.window); // BrowserWindow
-        tab.once('ready', function(tab) {
-            var win = windowUtils.getMostRecentBrowserWindow().content; //.wrappedJSObject;
-
-            // console.log("~~~ TAB READY: " + win); //XrayWrapper Window
-            // console.log(win.READIUM_ROOT_INDEX);
-            // console.log(win.document.documentElement.outerHTML);
-
-            setupContentBridge(win);
-        });
-    });
-
     tabs.open(url);
 };
+
+tabs.on('open', function(tab) {
+    // console.log("~~~ TAB OPEN: " + tab.window); // BrowserWindow
+    tab.on('ready', tabReady);
+});
+
+var tabReady = function(tab) {
+    var win = windowUtils.getMostRecentBrowserWindow().content;
+
+    // console.log("~~~ TAB READY: " + win); //XrayWrapper Window
+    // console.log(win.wrappedJSObject.READIUM_ROOT_INDEX);
+    // console.log(win.document.documentElement.outerHTML);
+    if (win.wrappedJSObject && win.wrappedJSObject.READIUM_ROOT_INDEX) {
+        setupContentBridge(win);
+    }
+};
+
+if (tabs.activeTab) {
+    tabs.activeTab.on('ready', tabReady);
+}
 
 const mimeTypes = require('mimeTypes');
 
@@ -203,6 +211,7 @@ var gotFileContent = function(payload) {
 };
 
 var setupContentBridge = function(win) {
+    console.log("``````````` READIUM WIRE");
     win.addEventListener("message",
         function(e) {
             var payload = e.data;
@@ -235,11 +244,13 @@ exports.handler = protocol.protocol(URI_SCHEME, {
         // ensure non-empty domain (adds URI_DOMAIN if missing, and redirects URI request)
         if (response.uri.replace(/\//g, '') === URI_SCHEME + ":") {
             response.uri = URI_INDEX_READIUM;
+            console.log("URI: " + response.uri);
             return;
         }
         var emptyDomain = URI_SCHEME + ":///";
         if (response.uri.indexOf(emptyDomain) === 0) {
             response.uri = URI_INDEX_READIUM + response.uri.substr(emptyDomain.length);
+            console.log("URI: " + response.uri);
             return;
         }
 
@@ -262,42 +273,23 @@ exports.handler = protocol.protocol(URI_SCHEME, {
 
         if (isJSONLib || isEPUBData) {
 
-            // console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
             // var win1 = windows.browserWindows.activeWindow;
-            // console.log(win1);
-            //console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-            var win = windowUtils.getMostRecentBrowserWindow().content;
-            //console.log(win2.document.documentElement.outerHTML);
-            //console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-            //var win = _window;
-            //console.log(win.document.documentElement.outerHTML);
-            //console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+            //var win = windowUtils.getMostRecentBrowserWindow().content;
 
-            // console.log("------- " + path);
-            //             win = null;
-            //             //for each (var w in windows.browserWindows) {
-            //             for each (var w in windowUtils.windows()) {
-            //                 if (w.content) w = w.content;
-            // console.log(w);
-            //             
-            //                 // any will do, all instances have access to the same indexedDB filesystem
-            //                 if (w && w.ReadiumStaticStorageManager) {
-            //                     win = w;
-            //                     break;
-            //                 }
-            //             }
-            // console.log("========");
+            var win = null;
+            //for each (var w in windows.browserWindows) {
+            for each(var w in windowUtils.windows()) {
+                if (w.content) w = w.content;
 
-            //console.log(win.document.getElementsByTagName("head")[0].outerHTML);
+                // any will do, all instances have access to the same indexedDB filesystem
+                if (w && w.wrappedJSObject && w.wrappedJSObject.READIUM_ROOT_INDEX) {
+                    win = w;
+                    break;
+                }
+            }
 
             if (!win || !win.wrappedJSObject || !win.wrappedJSObject.READIUM_ROOT_INDEX) {
                 console.log(">>>>>>>>>> No Readium WINDOW: " + request.uri);
-                // if (isJSONLib) {
-                //     console.log("isJSONLib");
-                //     response.contentType = "application/json";
-                //     response.contentLength = 2;
-                //     response.write('[]');
-                // }
                 response.end();
                 return;
             }
@@ -373,8 +365,8 @@ exports.handler = protocol.protocol(URI_SCHEME, {
         }
         url = url + query + hash;
 
-        //console.log("***************** URL: " + url);
         response.uri = url;
+        console.log("URI: " + response.uri);
     },
     //onResolve: function(relative, base) {
     // if (this.isAbsolute(relative))

@@ -9,7 +9,7 @@
   "homepage": "http://readium.org",
   "icon64": "icons/readium_logo_64.png",
   "icon": "icons/readium_logo_48.png",
-  "permissionsxx": {
+  "permissions": {
     "cross-domain-content": ["readium://epub", "readium://readium"]
   }
 }
