@@ -33,9 +33,16 @@
   opacity: .8;
 }
 
+/*
+#readium-toc-body *[dir=rtl]{
+direction: rtl;
+}
+*/
+
 #readium-toc-body ol{
   list-style-type: none;
   margin-top: 10px;
+  padding-left: 20px;
 }
 
 .toc-visible #readium-toc-body{
@@ -109,6 +116,20 @@
   z-index: -1;
   font-family: serif;
 }
+
+html[data-theme=night-theme] .book-title-header,
+html[data-theme=night-theme] body,
+html[data-theme=night-theme] #readium-toc-body
+{
+    background-color: #333333;
+    color: white;
+}
+
+html[data-theme=night-theme] .modal
+{
+    color: black;
+}
+
 /*.icon-show-hide, .icon-show-hide:active{
   display: none;
 }*/
@@ -862,6 +883,14 @@ box-shadow: 0 0 0 1px #6fb5f1;
   padding: 3px;
   margin-bottom: 10px;
 }
+.author-theme {
+  background-color: white;
+  color: black;
+  font-weight: bold;
+  font-style: italic;
+  border: 1px dashed #333333;
+}
+
 .night-theme {
   background-color: #141414;
   color: white;
@@ -903,41 +932,89 @@ box-shadow: 0 0 0 1px #6fb5f1;
 }
 
 
-/* page traversal buttons */
+
 .page-switch-overlay-icon {
-  margin: 0;
-  padding: 0;
+
   overflow: hidden;
   display: block;
   position: absolute;
+
   top: 50%;
-  padding-top: 200px;
-  padding-bottom: 200px;
-  margin-top: -250px;
-  animation-duration: 0.25s; /*0.25s*/
+  
+top: 10%;
+bottom: 10%;
+
+  opacity: 0.3;
+  
+  z-index: 99 !important;
+  
+  border: none !important;
+  
+  padding: 0;
+  margin: 0;
+  padding-top: 0.2em;
+
+  font-size: 360%;
+
+  background-color: rgba(255,255,255,0.5);
+    color: black;
 }
 
+html[data-theme=night-theme] .page-switch-overlay-icon {
+  background-color: rgba(0,0,0,0.4);
+    color: white;
+}
+
+.page-switch-overlay-icon > span
+{
+    padding: 0;
+    margin: 0;
+    
+vertical-align: middle;
+}
 
 #left-page-btn {
-  transform: scaleX(1);
+
   left: 0;
-  opacity: 0.5;
+  border-top-right-radius: 0.3em;
+  border-bottom-right-radius: 0.3em;
 }
-#left-page-btn:hover {
+
+/* #left-page-btn:focus, */
+#left-page-btn:hover
+{
   opacity: 1.0;
+  color: white;
+  background-color: rgba(0,0,0,0.2);
+}
+
+/* html[data-theme=night-theme] #left-page-btn:focus, */
+html[data-theme=night-theme] #left-page-btn:hover
+{
+  color: black;
+  background-color: rgba(255,255,255,0.2);
 }
 
 #right-page-btn {
-  -webkit-transform: scaleX(-1);
-  -ms-transform: scaleX(-1);
-  transform: scaleX(-1);
+
   right: 0;
-  opacity: 0.5;
-}
-#right-page-btn:hover {
-  opacity: 1.0;
+  border-top-left-radius: 0.3em;
+  border-bottom-left-radius: 0.3em;
 }
 
+/* #right-page-btn:focus, */
+#right-page-btn:hover
+{
+  opacity: 1.0;
+  color: white;
+  background-color: rgba(0,0,0,0.2);
+}
+/* html[data-theme=night-theme] #right-page-btn:focus, */
+html[data-theme=night-theme] #right-page-btn:hover
+{
+  color: black;
+  background-color: rgba(255,255,255,0.2);
+}
 
 /* epub container */
 #reading-area {
