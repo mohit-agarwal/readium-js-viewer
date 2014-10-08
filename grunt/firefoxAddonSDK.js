@@ -20,7 +20,7 @@ module.exports = function(grunt) {
         command = command || "run"; // run, or xpi
         grunt.log.writeln("Firefox command: [" + command + "]");
 
-        grunt.task.run.apply(grunt.task, ['clean:firefoxAddon', 'copy:firefoxAddon', 'cssmin:firefoxAddon', 'requirejs:firefoxAddon', 'requirejs:firefoxAddonWorker', 'firefoxAddonSDK:' + command]);
+        grunt.task.run.apply(grunt.task, ['clean:firefoxAddon', 'copy:firefoxAddon', 'cssmin:firefoxAddon', 'versioning', 'requirejs:firefoxAddon', 'requirejs:firefoxAddonWorker', 'updateFirefoxManifest', 'firefoxAddonSDK:' + command]);
     });
 
     return {};

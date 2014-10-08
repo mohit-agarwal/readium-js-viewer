@@ -5,11 +5,12 @@ require.config({
             'workerUrl': './scripts/readium-worker.js'
         },
         'EpubLibraryManager': {
-            'canHandleUrl': true,
+            'canHandleUrl': false,
             'canHandleDirectory': false //TODO: see EpubLibraryManager.handleDirectoryImport, only File.mozFullPath is supported => no directory file chooser, no full-folder import :(
         },
         'EpubReader': {
-            'annotationCssUrl': 'readium://readium/css/annotations.css'
+            'annotationCssUrl': 'readium://readium/css/annotations.css',
+            'useSimpleLoader' : true
         }
     }
 });
