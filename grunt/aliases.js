@@ -34,9 +34,6 @@ module.exports = function(grunt) {
 
         "test_sauce" : ['env:sauce', 'chromeApp', 'crx', 'env:chromeApp', 'simplemocha'],
 
-        "test_travis" : ['cloudReaderWithEpub', 'chromeApp', 'crx', 'express:test', 'simplemocha'],
-
-        // we need to pass parameter, so we use dynamic task (see firefoxAddonSDK.js)
-        //"firefoxAddon": ['clean:firefoxAddon', 'copy:firefoxAddon', 'cssmin:firefoxAddon', 'requirejs:firefoxAddon', 'requirejs:firefoxAddonWorker', 'firefoxAddonSDK'],
+        "test_travis" : ['cloudReaderWithEpub', 'chromeApp', 'crx', 'express:test', 'simplemocha']
     };
 };
