@@ -7,6 +7,12 @@
         "rootUrl" : "epub_content/accessible_epub_3"
     },
     {
+        "title" : "Internal links test (zipped EPUB)",
+        "author" : "Readium",
+        
+        "rootUrl" : "epub_content/internal_link.epub"
+    },
+    {
         "title" : "Page Blanche",
         "author" : "Boulet and Penelope Bagieu",
         "coverHref" : "epub_content/page-blanche/EPUB/Image/cover.jpg",
