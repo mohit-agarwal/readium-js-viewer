@@ -66,6 +66,41 @@ module.exports = function(grunt) {
                 /* , rename: function(dest, src) { return dest + '/' + src } */
             }]
         },
+        apacheCordova: {
+            files: [{
+                expand: true,
+                src: 'apache-cordova/**',
+                dest: 'build'
+            }, {
+                expand: true,
+                src: 'images/**',
+                dest: 'build/apache-cordova/www'
+            }, {
+                expand: true,
+                src: 'fonts/**',
+                dest: 'build/apache-cordova/www'
+            }, {
+                expand: true,
+                cwd: 'css',
+                src: 'annotations.css',
+                dest: 'build/apache-cordova/www/css'
+            }, {
+                expand: true,
+                cwd: 'lib',
+                src: 'mathjax/**',
+                dest: 'build/apache-cordova/www/scripts'
+            }, {
+                expand: true,
+                cwd: 'lib/thirdparty/',
+                src: 'inflate.js',
+                dest: 'build/apache-cordova/www/scripts/zip'
+            }, {
+                expand: true,
+                cwd: 'lib/thirdparty/',
+                src: 'deflate.js',
+                dest: 'build/apache-cordova/www/scripts/zip'
+            } ]
+        },
         cloudReader: {
             files: [{
                 expand: true,

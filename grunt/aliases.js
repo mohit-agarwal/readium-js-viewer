@@ -23,6 +23,8 @@ module.exports = function(grunt) {
         "chromeApp": ['clean:chromeApp', 'copy:chromeApp', 'cssmin:chromeApp', 'versioning', 'requirejs:chromeApp', 'requirejs:chromeAppWorker', 'updateChromeManifest'],
         //"chromeAppDevBuild": ['chromeApp', 'copy:chromeAppDevBuild', 'chromeAppDevBuildManifest'],
 
+        "apacheCordova": ['clean:apacheCordova', 'copy:apacheCordova', 'cssmin:apacheCordova', 'versioning', 'requirejs:apacheCordova'],
+
         "cloudReader": ['clean:cloudReader', 'copy:cloudReader', 'cssmin:cloudReader', 'versioning', 'requirejs:cloudReader'],
 
         "cloudReaderLite": ['clean:cloudReaderLite', 'copy:cloudReaderLite', 'cssmin:cloudReaderLite', 'versioning', 'requirejs:cloudReaderLite'],

@@ -17,6 +17,7 @@ module.exports = function(grunt) {
 
     return {
         chromeApp: ['build/chrome-app'],
+		apacheCordova: ['build/apache-cordova'],
         cloudReader: ['build/testbooks.zip', 'build/cloud-reader'],
         cloudReaderLite: ['build/cloud-reader-lite'],
         cloudReaderDev: ['build/cloud-reader-dev'],

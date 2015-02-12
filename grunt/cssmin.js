@@ -21,6 +21,11 @@ module.exports = function(grunt) {
                 'build/chrome-app/css/readium-all.css': ['css/sourcesanspro.css', 'css/bootstrap.css', 'css/bootstrap-accessibility.css', 'css/readium_js.css', 'css/viewer.css', 'css/viewer_audio.css', 'css/settings.css', 'css/library.css']
             }
         },
+        apacheCordova: {
+            files: {
+                'build/apache-cordova/www/css/readium-all.css': ['css/sourcesanspro.css', 'css/bootstrap.css', 'css/bootstrap-accessibility.css', 'css/readium_js.css', 'css/viewer.css', 'css/viewer_audio.css', 'css/settings.css', 'css/library.css']
+            }
+        },
         cloudReader: {
             files: {
                 'build/cloud-reader/css/readium-all.css': ['css/sourcesanspro.css', 'css/bootstrap.css', 'css/bootstrap-accessibility.css', 'css/readium_js.css', 'css/viewer.css', 'css/viewer_audio.css', 'css/settings.css', 'css/library.css']
