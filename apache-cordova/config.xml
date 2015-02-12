@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="org.readium.reader" version="0.0.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>Readium</name>
+    <description>
+        Readium, the EPUB3 reader
+    </description>
+    <author email="daniel.weck@gmail.com" href="http://github.com/readium">
+        The Readium dev team
+    </author>
+    <content src="index.html" />
+    <access origin="*" />
+	
+	<preference name="windows-target-version" value="8.1" />
+    <preference name="windows-phone-target-version" value="8.1" />
+</widget>
