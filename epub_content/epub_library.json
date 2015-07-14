@@ -41,5 +41,10 @@
         "title" : "packed EPUB",
         "author" : "Readium",
         "rootUrl" : "epub_content/internal_link.epub"
+    },
+    {
+        "title" : "Test EPUB",
+        "author" : "Readium",
+        "rootUrl" : "epub_content/Test_epub"
     }
 ]
