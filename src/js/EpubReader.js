@@ -72,6 +72,7 @@ Readium){
 
             $("#left-page-btn").unbind("click");
             $("#right-page-btn").unbind("click");
+            $("#bookmarked-page-btn").unbind("click");
             var $pageBtnsContainer = $('#readium-page-btns');
             $pageBtnsContainer.empty();
             var rtl = currentDocument.getPageProgressionDirection() === "rtl"; //_package.spine.isLeftToRight()
@@ -80,6 +81,7 @@ Readium){
             }));
             $("#left-page-btn").on("click", prevPage);
             $("#right-page-btn").on("click", nextPage);
+            $("#bookmarked-page-btn").on("click", bookmarkedPage);
 
         }, openPageRequest);
     };
@@ -491,6 +493,12 @@ Readium){
         return false;
     };
 
+    var bookmarkedPage = function () {
+
+        readium.reader.openPageBookmarked();
+        return false;
+    };
+    
     var installReaderEventHandlers = function(){
 
         // Set handlers for click events
