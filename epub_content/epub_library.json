@@ -31,5 +31,10 @@
         "author" : "Readium",
         "packagePath" : "package.opf",
         "rootUrl" : "epub_content/epubReadingSystem"
+    },
+    {
+        "title" : "Test Epub",
+        "author" : "Readium",
+        "rootUrl" : "epub_content/Test_epub"
     }
 ]
