@@ -209,6 +209,32 @@ html[data-theme=night-theme] .modal
     color: black;
 }
 
+.bookmark-page-switch-overlay-icon {
+
+  overflow: hidden;
+  display: block;
+  position: absolute;
+
+  top: 85%;
+  bottom: 5%;
+
+  opacity: 0.5;
+  
+  z-index: 99 !important;
+  
+  border: none !important;
+  
+  padding: 0;
+  margin: 0;
+  padding-top: 0.2em;
+  padding-bottom: 0.44em;
+
+  font-size: 40px;
+
+  background-color: rgba(255,255,255,0.5);
+    color: black;
+}
+
 html[data-theme=night-theme] .page-switch-overlay-icon {
   background-color: rgba(0,0,0,0.4);
     color: white;
@@ -265,6 +291,27 @@ html[data-theme=night-theme] #right-page-btn:hover
   background-color: rgba(255,255,255,0.2);
 }
 
+#bookmarked-page-btn {
+
+  left: 0;
+  border-top-right-radius: 0.3em;
+  border-bottom-right-radius: 0.3em;
+}
+
+/* #bookmarked-page-btn:focus, */
+#bookmarked-page-btn:hover
+{
+  opacity: 1.0;
+  color: white;
+  background-color: rgba(0,0,0,0.2);
+}
+/* html[data-theme=night-theme] #bookmarked-page-btn:focus, */
+html[data-theme=night-theme] #bookmarked-page-btn:hover
+{
+  color: black;
+  background-color: rgba(255,255,255,0.2);
+}
+
 #app-container {
 	overflow: hidden;
 }
@@ -305,6 +352,7 @@ html[data-theme=night-theme] #right-page-btn:hover
 
 .hide-ui #left-page-btn, 
 .hide-ui #right-page-btn,
+.hide-ui #bookmarked-page-btn,
 .embedded .toc-visible #left-page-btn, 
 .embedded .toc-visible #right-page-btn{
   -webkit-transition: opacity .2s ease-out;
